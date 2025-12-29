@@ -241,16 +241,18 @@
                 >
                   {refreshing ? 'SCRAPING...' : 'REFRESH LATEST'}
                 </button>
-                <button style={{
-                  backgroundColor: '#ff6600',
-                  color: 'white',
-                  border: 'none',
-                  padding: '2px 12px',
-                  fontSize: '11px',
-                  cursor: 'pointer',
-                  marginLeft: '0',
-                }}>
-                  Export ▼
+                <button 
+                  onClick={() => window.location.href = '/api/export'}
+                  style={{
+                    backgroundColor: '#ff6600',
+                    color: 'white',
+                    border: 'none',
+                    padding: '2px 12px',
+                    fontSize: '11px',
+                    cursor: 'pointer',
+                    marginLeft: '0',
+                  }}>
+                  Export CSV ▼
                 </button>
               </div>
 

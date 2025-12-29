@@ -1,10 +1,12 @@
 import os
+import io
+import csv
 import sqlite3
 import json
 import random
 from datetime import datetime, timedelta
 from pathlib import Path
-from flask import Flask, jsonify, request, render_template
+from flask import Flask, jsonify, request, render_template, Response
 from flask_cors import CORS
 import yfinance as yf
 import pandas as pd
@@ -369,6 +371,106 @@ def trigger_scrape():
 @app.route("/api/backfill")
 def trigger_backfill():
     return jsonify({"status": "disabled", "message": "Backfill with fake data is disabled."})
+
+@app.route("/api/export")
+def export_csv():
+    """Export comprehensive CSV data including daily index, listings, and metrics."""
+    conn = get_db_connection()
+    c = conn.cursor()
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Section 1: Summary Header
+    writer.writerow(['JENSEN HUANG LEATHER JACKET INDEX - DATA EXPORT'])
+    writer.writerow([f'Generated: {datetime.now().isoformat()}'])
+    writer.writerow([])
+    
+    # Section 2: Daily Index Data
+    writer.writerow(['=== DAILY INDEX DATA ==='])
+    writer.writerow(['Date', 'Avg Price ($)', 'Median Price ($)', 'Avg Sold Price ($)', 
+                     'Total Listings', 'Sold Count', 'Avg Jensen Score', 
+                     'NVDA Close ($)', 'NVDA % Change'])
+    
+    c.execute("""SELECT date, avg_price, median_price, avg_sold_price, 
+                        total_listings, sold_count, avg_jensen_score, 
+                        nvda_close, nvda_pct_change 
+                 FROM daily_index ORDER BY date DESC""")
+    for row in c.fetchall():
+        writer.writerow([
+            row['date'],
+            round(row['avg_price'], 2) if row['avg_price'] else '',
+            round(row['median_price'], 2) if row['median_price'] else '',
+            round(row['avg_sold_price'], 2) if row['avg_sold_price'] else '',
+            row['total_listings'] or '',
+            row['sold_count'] or '',
+            round(row['avg_jensen_score'], 2) if row['avg_jensen_score'] else '',
+            round(row['nvda_close'], 2) if row['nvda_close'] else '',
+            round(row['nvda_pct_change'], 2) if row['nvda_pct_change'] else ''
+        ])
+    
+    writer.writerow([])
+    
+    # Section 3: All Listings
+    writer.writerow(['=== INDIVIDUAL LISTINGS ==='])
+    writer.writerow(['ID', 'Title', 'Designer', 'Price ($)', 'Sold Price ($)', 
+                     'Is Sold', 'Jensen Score', 'Scraped At', 'URL'])
+    
+    c.execute("""SELECT id, title, designer, price, sold_price, is_sold, 
+                        jensen_score, scraped_at, url 
+                 FROM listings ORDER BY jensen_score DESC, scraped_at DESC""")
+    for row in c.fetchall():
+        writer.writerow([
+            row['id'],
+            row['title'] or '',
+            row['designer'] or '',
+            round(row['price'], 2) if row['price'] else '',
+            round(row['sold_price'], 2) if row['sold_price'] else '',
+            'Yes' if row['is_sold'] else 'No',
+            row['jensen_score'] or 0,
+            row['scraped_at'] or '',
+            row['url'] or ''
+        ])
+    
+    writer.writerow([])
+    
+    # Section 4: Summary Statistics
+    writer.writerow(['=== SUMMARY STATISTICS ==='])
+    
+    c.execute("""SELECT 
+                    COUNT(*) as total_listings,
+                    SUM(CASE WHEN is_sold THEN 1 ELSE 0 END) as total_sold,
+                    AVG(price) as avg_price,
+                    MIN(price) as min_price,
+                    MAX(price) as max_price,
+                    AVG(jensen_score) as avg_jensen_score,
+                    MAX(jensen_score) as max_jensen_score
+                 FROM listings""")
+    stats = c.fetchone()
+    
+    writer.writerow(['Metric', 'Value'])
+    writer.writerow(['Total Listings Tracked', stats['total_listings'] or 0])
+    writer.writerow(['Total Sold', stats['total_sold'] or 0])
+    writer.writerow(['Average Price ($)', round(stats['avg_price'], 2) if stats['avg_price'] else 'N/A'])
+    writer.writerow(['Min Price ($)', round(stats['min_price'], 2) if stats['min_price'] else 'N/A'])
+    writer.writerow(['Max Price ($)', round(stats['max_price'], 2) if stats['max_price'] else 'N/A'])
+    writer.writerow(['Average Jensen Score', round(stats['avg_jensen_score'], 2) if stats['avg_jensen_score'] else 'N/A'])
+    writer.writerow(['Max Jensen Score', stats['max_jensen_score'] or 'N/A'])
+    
+    # Get date range
+    c.execute("SELECT MIN(date) as first_date, MAX(date) as last_date FROM daily_index")
+    date_range = c.fetchone()
+    writer.writerow(['Data Start Date', date_range['first_date'] or 'N/A'])
+    writer.writerow(['Data End Date', date_range['last_date'] or 'N/A'])
+    
+    conn.close()
+    
+    output.seek(0)
+    return Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': f'attachment; filename=jhlj_index_export_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'}
+    )
 
 @app.route("/api/health")
 def health():
