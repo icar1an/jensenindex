@@ -61,6 +61,29 @@ def init_db():
     conn.close()
 
 # ============================================================================
+# STOCK DATA LOGIC
+# ============================================================================
+def get_nvda_data():
+    """Fetches the latest NVDA stock data with robust error handling."""
+    try:
+        nvda_ticker = yf.Ticker("NVDA")
+        # Use 5d to ensure we have enough data even on weekends/holidays
+        hist = nvda_ticker.history(period="7d")
+        
+        if len(hist) < 2:
+            return None, None, "N/A"
+            
+        curr_price = hist["Close"].iloc[-1]
+        prev_price = hist["Close"].iloc[-2]
+        pct_change = ((curr_price - prev_price) / prev_price) * 100
+        
+        display = f"${curr_price:.2f} {'▲' if pct_change >= 0 else '▼'} {abs(pct_change):.2f}%"
+        return curr_price, pct_change, display
+    except Exception as e:
+        print(f"Error fetching NVDA data: {e}")
+        return None, None, "N/A"
+
+# ============================================================================
 # SCRAPER LOGIC
 # ============================================================================
 def run_scrape():
@@ -111,11 +134,7 @@ def run_scrape():
                      (pid, title, designer, price, sold_price, is_sold, score, now, f"https://grailed.com/listings/{pid}"))
         
         # NVDA Data
-        nvda = yf.Ticker("NVDA")
-        hist = nvda.history(period="5d")
-        nvda_close = hist["Close"].iloc[-1]
-        nvda_prev = hist["Close"].iloc[-2]
-        nvda_pct = ((nvda_close - nvda_prev) / nvda_prev) * 100
+        nvda_close, nvda_pct, _ = get_nvda_data()
         
         # Daily Index
         today = datetime.now().date().isoformat()
@@ -145,9 +164,9 @@ def get_index():
     conn = get_db_connection()
     c = conn.cursor()
     
-    # Get daily history
+    # Get daily history (up to 2 years for Max/1Y views)
     try:
-        c.execute("SELECT * FROM daily_index ORDER BY date DESC LIMIT 90")
+        c.execute("SELECT * FROM daily_index ORDER BY date DESC LIMIT 730")
         daily_history = [dict(row) for row in c.fetchall()]
     except sqlite3.OperationalError:
         # Table might not exist yet if init_db wasn't successful or no scrape run
@@ -204,14 +223,9 @@ def get_index():
     nvda = [d["nvda_close"] for d in daily_history if d["nvda_close"] is not None]
     
     r_squared = 0
-    p_value = 0
-    lead_time = "3-5d" # Default
-    insights = [
-        "Asymmetric zippers correlate with 2.3% higher next-day NVDA returns",
-        "Black leather listings spike 18% in the week before earnings calls",
-        "Schott NYC jackets are the most predictive brand (r=0.74)",
-        "Jensen Score >10 items precede 5%+ NVDA moves 73% of the time"
-    ]
+    p_value = 1.0
+    lead_time = "N/A"
+    insights = []
 
     if len(prices) > 10 and len(nvda) > 10:
         min_len = min(len(prices), len(nvda))
@@ -221,39 +235,64 @@ def get_index():
         # Cross-correlation to find lead time
         best_r = -1
         best_lag = 0
+        best_p = 1.0
+        
         for lag in range(0, 8):
             if min_len - lag < 5: break
+            # Lag jacket prices to see if they lead NVDA
             p_slice = p[lag:]
             n_slice = n[:min_len-lag]
-            r, _ = stats.pearsonr(p_slice, n_slice)
+            
+            if len(p_slice) < 5: continue
+            
+            r, p_val = stats.pearsonr(p_slice, n_slice)
             if r > best_r:
                 best_r = r
                 best_lag = lag
+                best_p = p_val
         
         r_squared = best_r**2 if best_r != -1 else 0
+        p_value = best_p
         lead_time = f"{best_lag}d" if best_lag > 0 else "0d (Real-time)"
         
-        # Dynamic insights based on data
-        avg_score = sum(d["avg_jensen_score"] for d in daily_history[:7]) / 7 if len(daily_history) >= 7 else 0
-        if avg_score > 8:
-            insights[3] = f"Elevated Jensen Score ({avg_score:.1f}) suggests high institutional demand."
+        # Data-driven insights
+        if r_squared > 0.5:
+            insights.append(f"Statistically significant correlation detected (R²={r_squared:.2f}, p={p_value:.4f}).")
+            if best_lag > 0:
+                insights.append(f"Jacket prices currently leading NVDA by approximately {best_lag} days.")
+            else:
+                insights.append("Jacket prices and NVDA are currently moving in real-time synchronicity.")
         
-        if r_squared > 0.6:
-            insights[2] = f"Strong correlation (R²={r_squared:.2f}) confirms market efficiency."
+        avg_price_7d = sum(prices[:7]) / 7 if len(prices) >= 7 else 0
+        avg_price_28d = sum(prices[:28]) / 28 if len(prices) >= 28 else 0
+        if avg_price_7d > avg_price_28d * 1.05:
+            insights.append("Recent spike in average jacket listing prices may indicate upcoming volatility.")
+        
+        if not insights:
+            insights.append("Insufficient correlation strength to generate predictive insights at this time.")
+        
+        # Determine Signal
+        if r_squared > 0.3:
+            if best_lag > 0:
+                if len(prices) >= 7:
+                    curr_avg = sum(prices[:3]) / 3
+                    prev_avg = sum(prices[3:6]) / 3 # Simple 3d vs 3d comparison
+                    if curr_avg > prev_avg:
+                        signal = {"type": "BULLISH", "color": "#00ff00", "desc": f"Jacket prices leading NVDA by {best_lag}d and trending UP."}
+                    else:
+                        signal = {"type": "BEARISH", "color": "#ff4444", "desc": f"Jacket prices leading NVDA by {best_lag}d and trending DOWN."}
+                else:
+                    signal = {"type": "LEADING", "color": "#ffcc00", "desc": f"Jacket prices leading NVDA by {best_lag}d."}
+            else:
+                signal = {"type": "SYNCHRONIZED", "color": "#6699cc", "desc": "Jacket prices and NVDA moving in real-time synchronicity."}
+        else:
+            signal = {"type": "NEUTRAL", "color": "#888888", "desc": "Correlation strength below confidence threshold."}
+    else:
+        insights.append("Awaiting more historical data points to generate statistical insights.")
+        signal = {"type": "INITIALIZING", "color": "#444444", "desc": "Gathering historical panel data..."}
 
     # Get latest NVDA for header
-    try:
-        nvda_ticker = yf.Ticker("NVDA")
-        latest_hist = nvda_ticker.history(period="2d")
-        if not latest_hist.empty:
-            curr_price = latest_hist["Close"].iloc[-1]
-            prev_price = latest_hist["Close"].iloc[-2]
-            pct_change = ((curr_price - prev_price) / prev_price) * 100
-            nvda_display = f"${curr_price:.2f} {'▲' if pct_change >= 0 else '▼'} {abs(pct_change):.2f}%"
-        else:
-            nvda_display = "N/A"
-    except:
-        nvda_display = "N/A"
+    _, _, nvda_display = get_nvda_data()
 
     return jsonify({
         "ticker": "JHLJ",
@@ -264,6 +303,7 @@ def get_index():
         "p_value": round(p_value, 4),
         "lead_time": lead_time,
         "insights": insights,
+        "signal": signal,
         "nvda_display": nvda_display,
         "alt_data_metrics": [
             {
@@ -325,7 +365,9 @@ def get_index():
                 "week": d["date"], 
                 "jacket": round(((d["avg_price"] - daily_history[i+1]["avg_price"]) / daily_history[i+1]["avg_price"] * 100), 2) if i < len(daily_history)-1 and daily_history[i+1]["avg_price"] else 0,
                 "nvda": d["nvda_pct_change"] if d["nvda_pct_change"] is not None else 0,
-                "jensen": d["avg_jensen_score"]
+                "jensen": d["avg_jensen_score"],
+                "volume": d["total_listings"],
+                "sold": d["sold_count"]
             }
             for i, d in enumerate(daily_history)
         ][::-1],

@@ -10,13 +10,28 @@ import React, { useState, useEffect } from 'react';
 
 const JensenIndex = () => {
   const [activeTab, setActiveTab] = useState('Inflection');
-  const [timeRange, setTimeRange] = useState('3M');
+  const [timeRange, setTimeRange] = useState('1M');
+  const [activeMetric, setActiveMetric] = useState('Jacket Price vs NVDA');
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const tabs = ['Inflection', 'Jensen Correlation', 'Top Listings'];
   const timeRanges = ['1W', '1M', '3M', '6M', '1Y', 'Max'];
+
+  const getFilteredWeeklyData = () => {
+    if (!data || !data.weekly_data) return [];
+    const daysMap = {
+      '1W': 7,
+      '1M': 30,
+      '3M': 90,
+      '6M': 180,
+      '1Y': 365,
+      'Max': 10000
+    };
+    const days = daysMap[timeRange] || 30;
+    return data.weekly_data.slice(-days);
+  };
 
   // Fetch from real backend
   useEffect(() => {
@@ -195,7 +210,7 @@ const JensenIndex = () => {
           fontSize: '11px',
           marginRight: '16px'
         }}>
-          NVDA: {data.nvda_display || '$142.87 ▲ 2.74%'}
+          NVDA: {data.nvda_display || 'N/A'}
         </span>
         <button 
           onClick={handleRefresh}
@@ -362,13 +377,17 @@ const JensenIndex = () => {
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <span style={{ color: '#888888', fontSize: '10px' }}>Metric</span>
-                  <select style={{
-                    backgroundColor: '#333333',
-                    color: '#ffffff',
-                    border: '1px solid #444',
-                    padding: '2px 8px',
-                    fontSize: '11px'
-                  }}>
+                  <select 
+                    value={activeMetric}
+                    onChange={(e) => setActiveMetric(e.target.value)}
+                    style={{
+                      backgroundColor: '#333333',
+                      color: '#ffffff',
+                      border: '1px solid #444',
+                      padding: '2px 8px',
+                      fontSize: '11px'
+                    }}
+                  >
                     <option>Jacket Price vs NVDA</option>
                     <option>Jensen Score</option>
                     <option>Listings Volume</option>
@@ -401,25 +420,74 @@ const JensenIndex = () => {
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
                   <thead>
                     <tr style={{ backgroundColor: '#1a1a1a' }}>
-                      <th style={{ textAlign: 'left', padding: '4px 8px', color: '#888888', fontWeight: 'normal', fontSize: '10px' }}>Week Ending</th>
-                      <th style={{ textAlign: 'right', padding: '4px 8px', color: '#888888', fontWeight: 'normal', fontSize: '10px' }}>Jacket % Chg</th>
-                      <th style={{ textAlign: 'right', padding: '4px 8px', color: '#888888', fontWeight: 'normal', fontSize: '10px' }}>NVDA % Chg</th>
+                      <th style={{ textAlign: 'left', padding: '4px 8px', color: '#888888', fontWeight: 'normal', fontSize: '10px' }}>Date</th>
+                      {activeMetric === 'Jacket Price vs NVDA' && (
+                        <>
+                          <th style={{ textAlign: 'right', padding: '4px 8px', color: '#888888', fontWeight: 'normal', fontSize: '10px' }}>Jacket % Chg</th>
+                          <th style={{ textAlign: 'right', padding: '4px 8px', color: '#888888', fontWeight: 'normal', fontSize: '10px' }}>NVDA % Chg</th>
+                        </>
+                      )}
+                      {activeMetric === 'Jensen Score' && (
+                        <>
+                          <th style={{ textAlign: 'right', padding: '4px 8px', color: '#888888', fontWeight: 'normal', fontSize: '10px' }}>Jensen Score</th>
+                          <th style={{ textAlign: 'right', padding: '4px 8px', color: '#888888', fontWeight: 'normal', fontSize: '10px' }}>Score Momentum</th>
+                        </>
+                      )}
+                      {activeMetric === 'Listings Volume' && (
+                        <>
+                          <th style={{ textAlign: 'right', padding: '4px 8px', color: '#888888', fontWeight: 'normal', fontSize: '10px' }}>Total Listings</th>
+                          <th style={{ textAlign: 'right', padding: '4px 8px', color: '#888888', fontWeight: 'normal', fontSize: '10px' }}>Items Sold</th>
+                        </>
+                      )}
                       <th style={{ textAlign: 'right', padding: '4px 8px', color: '#888888', fontWeight: 'normal', fontSize: '10px' }}>Jensen Score</th>
                       <th style={{ textAlign: 'right', padding: '4px 8px', color: '#888888', fontWeight: 'normal', fontSize: '10px' }}>Signal</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {data.weekly_data && data.weekly_data.length > 0 ? (
-                      data.weekly_data.map((row, idx) => {
+                    {getFilteredWeeklyData().length > 0 ? (
+                      getFilteredWeeklyData().reverse().map((row, idx, arr) => {
                         const jacketNum = parseFloat(row.jacket);
                         const nvdaNum = parseFloat(row.nvda);
                         const aligned = (jacketNum > 0 && nvdaNum > 0) || (jacketNum < 0 && nvdaNum < 0);
                         
+                        // Momentum for Jensen Score view
+                        let momentum = 0;
+                        if (activeMetric === 'Jensen Score' && idx < arr.length - 1) {
+                          const prevScore = arr[idx+1].jensen;
+                          momentum = prevScore ? ((row.jensen - prevScore) / prevScore) * 100 : 0;
+                        }
+
                         return (
                           <tr key={idx} style={{ borderBottom: '1px solid #222' }}>
                             <td style={{ color: '#ffffff', padding: '3px 8px' }}>{row.week}</td>
-                            <ValueCell value={row.jacket} highlight={row.jacket > 4 ? 'yellow' : null} />
-                            <ValueCell value={row.nvda} />
+                            
+                            {activeMetric === 'Jacket Price vs NVDA' && (
+                              <>
+                                <ValueCell value={row.jacket} highlight={row.jacket > 4 ? 'yellow' : null} />
+                                <ValueCell value={row.nvda} />
+                              </>
+                            )}
+                            
+                            {activeMetric === 'Jensen Score' && (
+                              <>
+                                <td style={{ color: '#ffffff', padding: '3px 8px', textAlign: 'right', fontFamily: 'monospace' }}>
+                                  {row.jensen ? row.jensen.toFixed(2) : '0.00'}
+                                </td>
+                                <ValueCell value={momentum} />
+                              </>
+                            )}
+                            
+                            {activeMetric === 'Listings Volume' && (
+                              <>
+                                <td style={{ color: '#ffffff', padding: '3px 8px', textAlign: 'right', fontFamily: 'monospace' }}>
+                                  {row.volume || 0}
+                                </td>
+                                <td style={{ color: '#ffffff', padding: '3px 8px', textAlign: 'right', fontFamily: 'monospace' }}>
+                                  {row.sold || 0}
+                                </td>
+                              </>
+                            )}
+
                             <td style={{ color: row.jensen > 7 ? '#00ff00' : '#ffffff', padding: '3px 8px', textAlign: 'right' }}>
                               {row.jensen ? row.jensen.toFixed(1) : '0.0'}
                             </td>
@@ -476,12 +544,7 @@ const JensenIndex = () => {
               <div style={{ color: '#ffffff', fontSize: '12px', lineHeight: '1.8' }}>
                 <h4 style={{ color: '#ff9900', marginBottom: '8px' }}>Key Insights:</h4>
                 <ul style={{ margin: 0, paddingLeft: '20px' }}>
-                  {(data.insights || [
-                    "Asymmetric zippers correlate with 2.3% higher next-day NVDA returns",
-                    "Black leather listings spike 18% in the week before earnings calls",
-                    "Schott NYC jackets are the most predictive brand (r=0.74)",
-                    "Jensen Score >10 items precede 5%+ NVDA moves 73% of the time"
-                  ]).map((insight, i) => (
+                  {(data.insights || []).map((insight, i) => (
                     <li key={i} style={{ marginBottom: '8px' }}>
                       {insight}
                     </li>
@@ -583,17 +646,16 @@ const JensenIndex = () => {
           </div>
 
           <div style={{ 
-            backgroundColor: '#001a00', 
-            border: '1px solid #003300',
+            backgroundColor: '#0a1a0a', 
+            border: `1px solid ${data.signal?.color || '#333'}`,
             padding: '8px',
             marginTop: '16px'
           }}>
-            <div style={{ color: '#00ff00', fontSize: '11px', fontWeight: 'bold' }}>
-              SIGNAL: BULLISH
+            <div style={{ color: data.signal?.color || '#888888', fontSize: '11px', fontWeight: 'bold' }}>
+              SIGNAL: {data.signal?.type || 'N/A'}
             </div>
-            <div style={{ color: '#888888', fontSize: '10px', marginTop: '4px' }}>
-              Jensen Score trending up.<br />
-              Jacket prices leading NVDA.
+            <div style={{ color: '#888888', fontSize: '10px', marginTop: '4px', lineHeight: '1.4' }}>
+              {data.signal?.desc || 'Awaiting real-time correlation data.'}
             </div>
           </div>
 
