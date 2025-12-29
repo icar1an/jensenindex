@@ -26,9 +26,11 @@ DB_PATH = Path("/tmp/jackets.db") if os.environ.get("RENDER") else Path(__file__
 JENSEN_KEYWORDS = {
     "biker": 3, "moto": 3, "motorcycle": 3, "asymmetric": 2, "asymmetrical": 2,
     "black leather": 2, "cafe racer": 2, "band collar": 1, "mandarin collar": 1,
-    "tech": 5, "ceo": 5, "nvidia": 10, "jensen": 10,
-    "schott": 2, "allsaints": 2, "the kooples": 2, "acne studios": 1,
-    "saint laurent": 8, "rick owens": 6, "celine": 8, "tom ford": 8, "ysl": 8, "yves saint laurent": 8,
+    "tech": 5, "ceo": 5, "nvidia": 15, "jensen": 15,
+    "schott": 2, "allsaints": 2, "the kooples": 2, "acne studios": 2,
+    "saint laurent": 8, "rick owens": 6, "celine": 8, "tom ford": 25, "ysl": 8, "yves saint laurent": 8,
+    "hermes": 12, "prada": 7, "gucci": 7, "balenciaga": 6, "chrome hearts": 12,
+    "belstaff": 5, "brunello cucinelli": 10, "loro piana": 10, "undercover": 5, "julius": 4,
     "brown": -2, "tan": -2, "suede": -3, "shearling": -2, "bomber": -1, "varsity": -3,
 }
 
@@ -94,7 +96,9 @@ def run_scrape():
         queries = [
             "leather jacket black", "biker jacket leather", "moto jacket", "cafe racer jacket",
             "celine leather jacket", "tom ford leather jacket", "ysl leather jacket", 
-            "saint laurent leather jacket", "rick owens leather jacket"
+            "saint laurent leather jacket", "rick owens leather jacket",
+            "hermes leather jacket", "chrome hearts leather jacket", "prada leather jacket",
+            "gucci leather jacket", "brunello cucinelli leather", "loro piana leather"
         ]
         
         for query in queries:
