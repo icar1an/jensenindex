@@ -2,8 +2,6 @@ import os
 import sqlite3
 import json
 import random
-import numpy as np
-from scipy import stats
 from datetime import datetime, timedelta
 from pathlib import Path
 from flask import Flask, jsonify, request, render_template
@@ -145,7 +143,7 @@ def run_scrape():
         c.execute("SELECT AVG(price), AVG(sold_price), COUNT(*), SUM(is_sold), AVG(jensen_score) FROM listings")
         row = c.fetchone()
         if row and row[0]:
-            c.execute("INSERT OR REPLACE INTO daily_index VALUES (?,?,?,?,?,?,?,?,?)",
+            c.execute("INSERT OR REPLACE INTO daily_index (date, avg_price, median_price, avg_sold_price, total_listings, sold_count, avg_jensen_score, nvda_close, nvda_pct_change) VALUES (?,?,?,?,?,?,?,?,?)",
                      (today, row[0], row[0], row[1], row[2], row[3], row[4], nvda_close, nvda_pct))
         
         conn.commit()
@@ -155,72 +153,6 @@ def run_scrape():
     except Exception as e:
         print(f"Scrape failed: {e}")
         return False
-
-def backfill_index():
-    """
-    Backfills the daily_index with historical NVDA data and simulated jacket prices.
-    Ensures the dashboard looks full on first launch (especially on Render).
-    """
-    print(f"[{datetime.now()}] Starting backfill...")
-    try:
-        # 1. Run a fresh scrape to get current listings and baseline price
-        run_scrape()
-        
-        conn = get_db_connection()
-        c = conn.cursor()
-        
-        # Get current baseline from the scrape we just did
-        c.execute("SELECT AVG(price), AVG(jensen_score), COUNT(*) FROM listings")
-        baseline = c.fetchone()
-        if not baseline or not baseline[0]:
-            print("Error: No baseline data found for backfill.")
-            conn.close()
-            return
-    
-        avg_price_base = baseline[0]
-        avg_score_base = baseline[1]
-        count_base = baseline[2]
-        
-        # 2. Fetch NVDA history for the last 91 days to satisfy all trailing windows
-        nvda = yf.Ticker("NVDA")
-        hist = nvda.history(period="120d") # Get extra to be safe
-        
-        # 3. Populate daily_index
-        for date, row in hist.iterrows():
-            date_str = date.date().isoformat()
-            nvda_close = float(row['Close'])
-            
-            # Calculate pct change
-            try:
-                prev_close = hist['Close'].shift(1).loc[date]
-                nvda_pct = ((nvda_close - prev_close) / prev_close) * 100 if prev_close else 0
-            except:
-                nvda_pct = 0
-                
-            # Simulating jacket price correlation (beta = 0.73 as per the joke)
-            simulated_jacket_change = (nvda_pct * 0.73) + random.uniform(-1.5, 1.5)
-            simulated_price = avg_price_base * (1 + simulated_jacket_change / 100)
-            
-            # Jensen score also fluctuates slightly
-            simulated_score = avg_score_base + (nvda_pct * 0.05) + random.uniform(-0.3, 0.3)
-            
-            c.execute("""INSERT OR REPLACE INTO daily_index 
-                         VALUES (?,?,?,?,?,?,?,?,?)""",
-                      (date_str, 
-                       round(simulated_price, 2), 
-                       round(simulated_price * 0.96, 2), # median
-                       round(simulated_price * 0.92, 2), # avg_sold
-                       count_base + random.randint(-15, 15), 
-                       max(1, int(count_base * 0.15) + random.randint(-10, 10)),
-                       round(simulated_score, 2),
-                       round(nvda_close, 2),
-                       round(nvda_pct, 2)))
-            
-        conn.commit()
-        conn.close()
-        print(f"[{datetime.now()}] Backfill completed successfully.")
-    except Exception as e:
-        print(f"Backfill failed: {e}")
 
 # ============================================================================
 # API ROUTES
@@ -234,15 +166,14 @@ def get_index():
     conn = get_db_connection()
     c = conn.cursor()
     
-    # Get daily history (up to 2 years for Max/1Y views)
+    # Get daily history
     try:
         c.execute("SELECT * FROM daily_index ORDER BY date DESC LIMIT 730")
         daily_history = [dict(row) for row in c.fetchall()]
     except sqlite3.OperationalError:
-        # Table might not exist yet if init_db wasn't successful or no scrape run
         daily_history = []
     
-    # Get top listings (Relaxed filter to ensure we show real listings even if scores are low)
+    # Get top listings
     try:
         c.execute("SELECT * FROM listings ORDER BY jensen_score DESC, scraped_at DESC LIMIT 20")
         top_listings = [dict(row) for row in c.fetchall()]
@@ -259,7 +190,6 @@ def get_index():
 
     def calc_pop(data, field, days):
         if len(data) < days * 2:
-            # Fallback: if we don't have 2 full periods, compare latest to oldest available in first period
             if len(data) < 2: return 0
             latest = data[0][field]
             oldest = data[-1][field]
@@ -267,99 +197,12 @@ def get_index():
         
         curr_subset = data[:days]
         prev_subset = data[days:days*2]
-        
         curr_vals = [d[field] for d in curr_subset if d.get(field) is not None]
         prev_vals = [d[field] for d in prev_subset if d.get(field) is not None]
-        
         if not curr_vals or not prev_vals: return 0
-        
         curr_avg = sum(curr_vals) / len(curr_vals)
         prev_avg = sum(prev_vals) / len(prev_vals)
-        
         return ((curr_avg - prev_avg) / prev_avg) * 100 if prev_avg else 0
-
-    def calc_correlation(data, field1, field2, days):
-        subset = data[:days]
-        v1 = [d[field1] for d in subset if d.get(field1) is not None and d.get(field2) is not None]
-        v2 = [d[field2] for d in subset if d.get(field1) is not None and d.get(field2) is not None]
-        
-        if len(v1) < 3: return 0
-        
-        res = stats.pearsonr(v1, v2)
-        return res[0] if not np.isnan(res[0]) else 0
-
-    # Calculate correlation for Jensen Correlation tab
-    prices = [d["avg_price"] for d in daily_history if d["avg_price"] is not None]
-    nvda = [d["nvda_close"] for d in daily_history if d["nvda_close"] is not None]
-    
-    r_squared = 0
-    p_value = 1.0
-    lead_time = "N/A"
-    insights = []
-
-    if len(prices) > 10 and len(nvda) > 10:
-        min_len = min(len(prices), len(nvda))
-        p = np.array(prices[:min_len])
-        n = np.array(nvda[:min_len])
-        
-        # Cross-correlation to find lead time
-        best_r = -1
-        best_lag = 0
-        best_p = 1.0
-        
-        for lag in range(0, 8):
-            if min_len - lag < 5: break
-            # Lag jacket prices to see if they lead NVDA
-            p_slice = p[lag:]
-            n_slice = n[:min_len-lag]
-            
-            if len(p_slice) < 5: continue
-            
-            r, p_val = stats.pearsonr(p_slice, n_slice)
-            if r > best_r:
-                best_r = r
-                best_lag = lag
-                best_p = p_val
-        
-        r_squared = best_r**2 if best_r != -1 else 0
-        p_value = best_p
-        lead_time = f"{best_lag}d" if best_lag > 0 else "0d (Real-time)"
-        
-        # Data-driven insights
-        if r_squared > 0.5:
-            insights.append(f"Statistically significant correlation detected (R²={r_squared:.2f}, p={p_value:.4f}).")
-            if best_lag > 0:
-                insights.append(f"Jacket prices currently leading NVDA by approximately {best_lag} days.")
-            else:
-                insights.append("Jacket prices and NVDA are currently moving in real-time synchronicity.")
-        
-        avg_price_7d = sum(prices[:7]) / 7 if len(prices) >= 7 else 0
-        avg_price_28d = sum(prices[:28]) / 28 if len(prices) >= 28 else 0
-        if avg_price_7d > avg_price_28d * 1.05:
-            insights.append("Recent spike in average jacket listing prices may indicate upcoming volatility.")
-        
-        if not insights:
-            insights.append("Insufficient correlation strength to generate predictive insights at this time.")
-        
-        # Determine Signal
-        if r_squared > 0.3:
-            if best_lag > 0:
-                if len(prices) >= 7:
-                    curr_avg = sum(prices[:3]) / 3
-                    prev_avg = sum(prices[3:6]) / 3 # Simple 3d vs 3d comparison
-                    if curr_avg > prev_avg:
-                        signal = {"type": "BULLISH", "color": "#00ff00", "desc": f"Jacket prices leading NVDA by {best_lag}d and trending UP."}
-                    else:
-                        signal = {"type": "BEARISH", "color": "#ff4444", "desc": f"Jacket prices leading NVDA by {best_lag}d and trending DOWN."}
-                else:
-                    signal = {"type": "LEADING", "color": "#ffcc00", "desc": f"Jacket prices leading NVDA by {best_lag}d."}
-            else:
-                signal = {"type": "SYNCHRONIZED", "color": "#6699cc", "desc": "Jacket prices and NVDA moving in real-time synchronicity."}
-        else:
-            signal = {"type": "NEUTRAL", "color": "#888888", "desc": "Correlation strength below confidence threshold."}
-    else:
-        insights.append("Awaiting more historical data points to generate statistical insights.")
-        signal = {"type": "INITIALIZING", "color": "#444444", "desc": "Gathering historical panel data..."}
 
     # Get latest NVDA for header
     _, _, nvda_display = get_nvda_data()
@@ -369,11 +212,6 @@ def get_index():
         "name": "Jensen Huang Leather Jacket Index",
         "status": "live",
         "last_updated": daily_history[0]["date"] if daily_history else "N/A",
-        "r_squared": round(r_squared, 4),
-        "p_value": round(p_value, 4),
-        "lead_time": lead_time,
-        "insights": insights,
-        "signal": signal,
         "nvda_display": nvda_display,
         "alt_data_metrics": [
             {
@@ -412,22 +250,6 @@ def get_index():
                 "pop91": round(calc_pop(daily_history, "sold_count", 91), 2),
                 "pop28": round(calc_pop(daily_history, "sold_count", 28), 2),
                 "pop7": round(calc_pop(daily_history, "sold_count", 7), 2)
-            },
-            {
-                "name": "NVDA Correlation (R)",
-                "trailing91": round(calc_correlation(daily_history, "avg_price", "nvda_close", 91), 3),
-                "trailing28": round(calc_correlation(daily_history, "avg_price", "nvda_close", 28), 3),
-                "trailing7": round(calc_correlation(daily_history, "avg_price", "nvda_close", 7), 3),
-                "pop91": 0, "pop28": 0, "pop7": 0 # PoP on correlation is less meaningful
-            },
-            {
-                "name": "Price/NVDA Ratio",
-                "trailing91": round(calc_trailing(daily_history, "avg_price", 91) / calc_trailing(daily_history, "nvda_close", 91), 2) if calc_trailing(daily_history, "nvda_close", 91) else 0,
-                "trailing28": round(calc_trailing(daily_history, "avg_price", 28) / calc_trailing(daily_history, "nvda_close", 28), 2) if calc_trailing(daily_history, "nvda_close", 28) else 0,
-                "trailing7": round(calc_trailing(daily_history, "avg_price", 7) / calc_trailing(daily_history, "nvda_close", 7), 2) if calc_trailing(daily_history, "nvda_close", 7) else 0,
-                "pop91": round(calc_pop(daily_history, "avg_price", 91) - calc_pop(daily_history, "nvda_close", 91), 2),
-                "pop28": round(calc_pop(daily_history, "avg_price", 28) - calc_pop(daily_history, "nvda_close", 28), 2),
-                "pop7": round(calc_pop(daily_history, "avg_price", 7) - calc_pop(daily_history, "nvda_close", 7), 2)
             }
         ],
         "weekly_data": [
@@ -452,9 +274,7 @@ def trigger_scrape():
 
 @app.route("/api/backfill")
 def trigger_backfill():
-    import threading
-    threading.Thread(target=backfill_index).start()
-    return jsonify({"status": "backfill_started"})
+    return jsonify({"status": "disabled", "message": "Backfill with fake data is disabled."})
 
 @app.route("/api/health")
 def health():
@@ -470,27 +290,27 @@ scheduler = BackgroundScheduler()
 scheduler.add_job(func=run_scrape, trigger="interval", hours=6)
 scheduler.start()
 
-# Run an initial backfill on startup if database is empty
+# Run an initial scrape on startup if database is empty
 with app.app_context():
     try:
         conn = get_db_connection()
         c = conn.cursor()
-        c.execute("SELECT COUNT(*) FROM daily_index")
+        c.execute("SELECT COUNT(*) FROM listings")
         count = c.fetchone()[0]
         conn.close()
         
-        # If we have less than 10 days of data, run a backfill to ensure
-        # the dashboard is fully populated with "historical" data.
-        if count < 10:
-            print(f"Database has only {count} entries. Running backfill...")
+        if count == 0:
+            print(f"Database is empty. Running initial scrape...")
             import threading
-            threading.Thread(target=backfill_index).start()
+            threading.Thread(target=run_scrape).start()
     except Exception as e:
         print(f"Error during startup check: {e}")
-        # If DB is broken, try to init and backfill
         init_db()
         import threading
-        threading.Thread(target=backfill_index).start()
+        threading.Thread(target=run_scrape).start()
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
