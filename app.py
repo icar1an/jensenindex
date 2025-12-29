@@ -7,6 +7,7 @@ from pathlib import Path
 from flask import Flask, jsonify, request, render_template
 from flask_cors import CORS
 import yfinance as yf
+import pandas as pd
 from apscheduler.schedulers.background import BackgroundScheduler
 from grailed_api import GrailedAPIClient
 from grailed_api.enums.categories import Outerwear
@@ -83,6 +84,44 @@ def get_nvda_data():
     except Exception as e:
         print(f"Error fetching NVDA data: {e}")
         return None, None, "N/A"
+
+def backfill_nvda_history():
+    """Backfills the daily_index table with 90 days of actual NVDA price data."""
+    print(f"[{datetime.now()}] Starting NVDA historical backfill...")
+    try:
+        nvda_ticker = yf.Ticker("NVDA")
+        hist = nvda_ticker.history(period="90d")
+        if hist.empty:
+            print("No NVDA history found.")
+            return
+
+        hist['Pct_Chg'] = hist['Close'].pct_change() * 100
+
+        conn = get_db_connection()
+        c = conn.cursor()
+        
+        count = 0
+        for date_ts, row in hist.iterrows():
+            date_str = date_ts.date().isoformat()
+            close_price = float(row['Close'])
+            pct_chg = float(row['Pct_Chg']) if not pd.isna(row['Pct_Chg']) else None
+            
+            c.execute("""
+                INSERT INTO daily_index (date, nvda_close, nvda_pct_change) 
+                VALUES (?, ?, ?)
+                ON CONFLICT(date) DO UPDATE SET 
+                nvda_close = excluded.nvda_close,
+                nvda_pct_change = excluded.nvda_pct_change
+                WHERE nvda_close IS NULL
+            """, (date_str, close_price, pct_chg))
+            if c.rowcount > 0:
+                count += 1
+        
+        conn.commit()
+        conn.close()
+        print(f"[{datetime.now()}] NVDA backfill completed. Updated {count} rows.")
+    except Exception as e:
+        print(f"NVDA backfill failed: {e}")
 
 # ============================================================================
 # SCRAPER LOGIC
@@ -188,25 +227,24 @@ def get_index():
 
     # Prepare metrics
     def calc_trailing(data, field, days):
-        subset = data[:days]
-        vals = [d[field] for d in subset if d.get(field) is not None]
-        return sum(vals) / len(vals) if vals else 0
+        valid_vals = [d[field] for d in data if d.get(field) is not None]
+        subset = valid_vals[:days]
+        return sum(subset) / len(subset) if subset else 0
 
     def calc_pop(data, field, days):
-        if len(data) < days * 2:
-            if len(data) < 2: return None
-            latest = data[0][field]
-            oldest = data[-1][field]
-            return ((latest - oldest) / oldest) * 100 if oldest else None
+        valid_data = [d for d in data if d.get(field) is not None]
+        if len(valid_data) < 2: return None
         
-        curr_subset = data[:days]
-        prev_subset = data[days:days*2]
-        curr_vals = [d[field] for d in curr_subset if d.get(field) is not None]
-        prev_vals = [d[field] for d in prev_subset if d.get(field) is not None]
-        if not curr_vals or not prev_vals: return None
-        curr_avg = sum(curr_vals) / len(curr_vals)
-        prev_avg = sum(prev_vals) / len(prev_vals)
-        return ((curr_avg - prev_avg) / prev_avg) * 100 if prev_avg else None
+        if len(valid_data) >= days * 2:
+            curr_subset = valid_data[:days]
+            prev_subset = valid_data[days:days*2]
+            curr_avg = sum(d[field] for d in curr_subset) / len(curr_subset)
+            prev_avg = sum(d[field] for d in prev_subset) / len(prev_subset)
+            return ((curr_avg - prev_avg) / prev_avg) * 100 if prev_avg else None
+        
+        latest = valid_data[0][field]
+        oldest = valid_data[-1][field]
+        return ((latest - oldest) / oldest) * 100 if oldest else None
 
     # Get latest NVDA for header
     _, _, nvda_display = get_nvda_data()
@@ -259,7 +297,7 @@ def get_index():
         "weekly_data": [
             {
                 "week": d["date"], 
-                "jacket": round(((d["avg_price"] - daily_history[i+1]["avg_price"]) / daily_history[i+1]["avg_price"] * 100), 2) if i < len(daily_history)-1 and daily_history[i+1]["avg_price"] else None,
+                "jacket": round(((d["avg_price"] - daily_history[i+1]["avg_price"]) / daily_history[i+1]["avg_price"] * 100), 2) if i < len(daily_history)-1 and d["avg_price"] is not None and daily_history[i+1]["avg_price"] else None,
                 "nvda": d["nvda_pct_change"] if d["nvda_pct_change"] is not None else 0,
                 "jensen": d["avg_jensen_score"],
                 "volume": d["total_listings"],
@@ -294,27 +332,37 @@ scheduler = BackgroundScheduler()
 scheduler.add_job(func=run_scrape, trigger="interval", hours=6)
 scheduler.start()
 
-# Run an initial scrape on startup if database is empty
+# Run initial checks on startup
 with app.app_context():
     try:
         conn = get_db_connection()
         c = conn.cursor()
+        
+        # Check if listings exist
         c.execute("SELECT COUNT(*) FROM listings")
         count = c.fetchone()[0]
+        
+        # Check if history exists
+        c.execute("SELECT COUNT(*) FROM daily_index")
+        history_count = c.fetchone()[0]
         conn.close()
         
+        import threading
         if count == 0:
             print(f"Database is empty. Running initial scrape...")
-            import threading
             threading.Thread(target=run_scrape).start()
+        
+        # Always attempt backfill if history is short to ensure 90d actual data
+        if history_count < 90:
+            print(f"History is sparse ({history_count} rows). Running NVDA backfill...")
+            threading.Thread(target=backfill_nvda_history).start()
+            
     except Exception as e:
         print(f"Error during startup check: {e}")
         init_db()
         import threading
         threading.Thread(target=run_scrape).start()
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+        threading.Thread(target=backfill_nvda_history).start()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
