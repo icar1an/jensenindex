@@ -26,16 +26,19 @@ const JensenIndex = () => {
         if (!response.ok) throw new Error('Network response was not ok');
         const jsonData = await response.json();
         
-        if (jsonData.status === 'seeding') {
-          // If seeding, keep loading or show message
-          console.log('Backend is seeding data...');
-          setData(getMockData()); // Fallback to mock for now
-        } else {
-          setData(jsonData);
-        }
+        setData(jsonData);
       } catch (error) {
         console.error('Error fetching data:', error);
-        setData(getMockData()); // Fallback to mock on error
+        // Ensure we have a basic structure even on error
+        setData({
+          ticker: "JHLJ",
+          name: "Jensen Huang Leather Jacket Index",
+          status: "error",
+          alt_data_metrics: [],
+          weekly_data: [],
+          top_listings: [],
+          last_updated: "N/A"
+        });
       } finally {
         setLoading(false);
       }
@@ -60,37 +63,6 @@ const JensenIndex = () => {
       setRefreshing(false);
     }
   };
-
-  const getMockData = () => ({
-    ticker: "JHLJ",
-    name: "Jensen Huang Leather Jacket Index",
-    last_updated: "2024-12-28",
-    alt_data_metrics: [
-      { name: 'Avg Jacket Price', trailing91: 487.32, trailing28: 502.18, trailing7: 518.45, pop91: 5.27, pop28: 3.20, pop7: 2.06, highlighted: true },
-      { name: 'Jensen Score (Avg)', trailing91: 6.82, trailing28: 7.14, trailing7: 7.92, pop91: 8.22, pop28: 4.71, pop7: 6.34 },
-      { name: 'Daily Listings', trailing91: 147, trailing28: 156, trailing7: 168, pop91: 12.11, pop28: 8.29, pop7: 5.67 },
-      { name: 'Items Sold', trailing91: 23, trailing28: 27, trailing7: 31, pop91: 14.50, pop28: 11.11, pop7: 8.89 },
-      { name: 'NVDA Correlation (β)', trailing91: 0.73, trailing28: 0.68, trailing7: 0.81, pop91: 2.34, pop28: 5.12, pop7: 8.94 },
-      { name: 'Price/NVDA Ratio', trailing91: 3.52, trailing28: 3.61, trailing7: 3.74, pop91: -1.12, pop28: 2.49, pop7: 3.60 },
-    ],
-    weekly_data: [
-      { week: '15-Nov', jacket: 3.49, nvda: 4.40, jensen: 6.2 },
-      { week: '22-Nov', jacket: -1.23, nvda: -0.85, jensen: 5.8 },
-      { week: '29-Nov', jacket: 2.87, nvda: 3.22, jensen: 7.1 },
-      { week: '06-Dec', jacket: 5.12, nvda: 6.85, jensen: 8.4 },
-      { week: '13-Dec', jacket: -0.45, nvda: -1.17, jensen: 6.9 },
-      { week: '20-Dec', jacket: 4.33, nvda: 5.21, jensen: 7.8 },
-      { week: '27-Dec', jacket: 2.18, nvda: 2.74, jensen: 7.2 },
-    ],
-    top_listings: [
-      { id: '12998877', title: 'Black Leather Tech CEO Biker (NVIDIA investor energy)', designer: 'Unknown', price: 320, jensen_score: 25 },
-      { id: '12847291', title: 'Schott NYC 626 Leather Moto Jacket Black', designer: 'Schott NYC', price: 650, jensen_score: 12 },
-      { id: '12903847', title: 'AllSaints Cargo Leather Biker Jacket', designer: 'AllSaints', price: 380, jensen_score: 10 },
-      { id: '12756392', title: 'The Kooples Asymmetric Leather Jacket', designer: 'The Kooples', price: 425, jensen_score: 9 },
-      { id: '12901234', title: 'Saint Laurent L01 Classic Motorcycle', designer: 'Saint Laurent', price: 2400, jensen_score: 8 },
-      { id: '12776543', title: 'Vintage Cafe Racer Black Leather', designer: 'Vintage', price: 245, jensen_score: 8 },
-    ],
-  });
 
   const formatValue = (val, options = {}) => {
     if (val === undefined || val === null) return '';
@@ -344,29 +316,37 @@ const JensenIndex = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.alt_data_metrics.map((metric, idx) => (
-                    <tr key={idx} style={{ borderBottom: '1px solid #222' }}>
-                      <td style={{ 
-                        color: metric.highlighted ? '#ffcc00' : '#ffffff',
-                        padding: '4px 8px',
-                        fontSize: '11px'
-                      }}>
-                        {metric.name}
+                  {data.alt_data_metrics && data.alt_data_metrics.length > 0 ? (
+                    data.alt_data_metrics.map((metric, idx) => (
+                      <tr key={idx} style={{ borderBottom: '1px solid #222' }}>
+                        <td style={{ 
+                          color: metric.highlighted ? '#ffcc00' : '#ffffff',
+                          padding: '4px 8px',
+                          fontSize: '11px'
+                        }}>
+                          {metric.name}
+                        </td>
+                        <td style={{ color: '#ffffff', padding: '2px 8px', textAlign: 'right', fontFamily: 'monospace', fontSize: '12px' }}>
+                          {formatValue(metric.trailing91)}
+                        </td>
+                        <td style={{ color: '#ffffff', padding: '2px 8px', textAlign: 'right', fontFamily: 'monospace', fontSize: '12px' }}>
+                          {formatValue(metric.trailing28)}
+                        </td>
+                        <td style={{ color: '#ffffff', padding: '2px 8px', textAlign: 'right', fontFamily: 'monospace', fontSize: '12px' }}>
+                          {formatValue(metric.trailing7)}
+                        </td>
+                        <ValueCell value={metric.pop91} highlight={metric.highlighted ? 'yellow' : null} />
+                        <ValueCell value={metric.pop28} highlight={metric.highlighted ? 'yellow' : null} />
+                        <ValueCell value={metric.pop7} highlight={metric.highlighted ? 'yellow' : null} />
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="7" style={{ padding: '20px', textAlign: 'center', color: '#888888' }}>
+                        Waiting for real data... Click 'REFRESH LATEST' to populate index.
                       </td>
-                      <td style={{ color: '#ffffff', padding: '2px 8px', textAlign: 'right', fontFamily: 'monospace', fontSize: '12px' }}>
-                        {formatValue(metric.trailing91)}
-                      </td>
-                      <td style={{ color: '#ffffff', padding: '2px 8px', textAlign: 'right', fontFamily: 'monospace', fontSize: '12px' }}>
-                        {formatValue(metric.trailing28)}
-                      </td>
-                      <td style={{ color: '#ffffff', padding: '2px 8px', textAlign: 'right', fontFamily: 'monospace', fontSize: '12px' }}>
-                        {formatValue(metric.trailing7)}
-                      </td>
-                      <ValueCell value={metric.pop91} highlight={metric.highlighted ? 'yellow' : null} />
-                      <ValueCell value={metric.pop28} highlight={metric.highlighted ? 'yellow' : null} />
-                      <ValueCell value={metric.pop7} highlight={metric.highlighted ? 'yellow' : null} />
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
 
@@ -429,29 +409,37 @@ const JensenIndex = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.weekly_data.map((row, idx) => {
-                      const jacketNum = parseFloat(row.jacket);
-                      const nvdaNum = parseFloat(row.nvda);
-                      const aligned = (jacketNum > 0 && nvdaNum > 0) || (jacketNum < 0 && nvdaNum < 0);
-                      
-                      return (
-                        <tr key={idx} style={{ borderBottom: '1px solid #222' }}>
-                          <td style={{ color: '#ffffff', padding: '3px 8px' }}>{row.week}</td>
-                          <ValueCell value={row.jacket} highlight={row.jacket > 4 ? 'yellow' : null} />
-                          <ValueCell value={row.nvda} />
-                          <td style={{ color: row.jensen > 7 ? '#00ff00' : '#ffffff', padding: '3px 8px', textAlign: 'right' }}>
-                            {row.jensen.toFixed(1)}
-                          </td>
-                          <td style={{ 
-                            padding: '3px 8px', 
-                            textAlign: 'right',
-                            color: aligned ? '#00ff00' : '#ff9900'
-                          }}>
-                            {aligned ? '✓ ALIGNED' : '⚠ DIVERGE'}
-                          </td>
-                        </tr>
-                      );
-                    })}
+                    {data.weekly_data && data.weekly_data.length > 0 ? (
+                      data.weekly_data.map((row, idx) => {
+                        const jacketNum = parseFloat(row.jacket);
+                        const nvdaNum = parseFloat(row.nvda);
+                        const aligned = (jacketNum > 0 && nvdaNum > 0) || (jacketNum < 0 && nvdaNum < 0);
+                        
+                        return (
+                          <tr key={idx} style={{ borderBottom: '1px solid #222' }}>
+                            <td style={{ color: '#ffffff', padding: '3px 8px' }}>{row.week}</td>
+                            <ValueCell value={row.jacket} highlight={row.jacket > 4 ? 'yellow' : null} />
+                            <ValueCell value={row.nvda} />
+                            <td style={{ color: row.jensen > 7 ? '#00ff00' : '#ffffff', padding: '3px 8px', textAlign: 'right' }}>
+                              {row.jensen ? row.jensen.toFixed(1) : '0.0'}
+                            </td>
+                            <td style={{ 
+                              padding: '3px 8px', 
+                              textAlign: 'right',
+                              color: aligned ? '#00ff00' : '#ff9900'
+                            }}>
+                              {aligned ? '✓ ALIGNED' : '⚠ DIVERGE'}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td colSpan="5" style={{ padding: '12px', textAlign: 'center', color: '#666' }}>
+                          Historical correlation data will appear after the first scrape.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -472,11 +460,11 @@ const JensenIndex = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
                   <div>
                     <div style={{ color: '#888888', fontSize: '10px' }}>R-Squared</div>
-                    <div style={{ color: '#00ff00', fontSize: '24px', fontWeight: 'bold' }}>0.67</div>
+                    <div style={{ color: '#00ff00', fontSize: '24px', fontWeight: 'bold' }}>{data.r_squared || '0.00'}</div>
                   </div>
                   <div>
                     <div style={{ color: '#888888', fontSize: '10px' }}>P-Value</div>
-                    <div style={{ color: '#00ff00', fontSize: '24px', fontWeight: 'bold' }}>0.003</div>
+                    <div style={{ color: '#00ff00', fontSize: '24px', fontWeight: 'bold' }}>{data.p_value || '0.000'}</div>
                   </div>
                   <div>
                     <div style={{ color: '#888888', fontSize: '10px' }}>Lead Time</div>
@@ -528,30 +516,38 @@ const JensenIndex = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.top_listings.map((listing, idx) => (
-                    <tr key={idx} style={{ borderBottom: '1px solid #222' }}>
-                      <td style={{ 
-                        padding: '8px', 
-                        color: listing.jensen_score >= 20 ? '#00ff00' : '#ffffff',
-                        fontSize: '11px',
-                        maxWidth: '300px',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
-                      }}>
-                        {listing.title}
-                      </td>
-                      <td style={{ padding: '8px', color: '#888888', fontSize: '11px' }}>
-                        {listing.designer}
-                      </td>
-                      <td style={{ padding: '8px', color: '#ffffff', fontSize: '11px', textAlign: 'right', fontFamily: 'monospace' }}>
-                        ${listing.price.toLocaleString()}
-                      </td>
-                      <td style={{ padding: '8px', textAlign: 'center' }}>
-                        <JensenScoreBadge score={listing.jensen_score} />
+                  {data.top_listings && data.top_listings.length > 0 ? (
+                    data.top_listings.map((listing, idx) => (
+                      <tr key={idx} style={{ borderBottom: '1px solid #222' }}>
+                        <td style={{ 
+                          padding: '8px', 
+                          color: listing.jensen_score >= 20 ? '#00ff00' : '#ffffff',
+                          fontSize: '11px',
+                          maxWidth: '300px',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {listing.title}
+                        </td>
+                        <td style={{ padding: '8px', color: '#888888', fontSize: '11px' }}>
+                          {listing.designer}
+                        </td>
+                        <td style={{ padding: '8px', color: '#ffffff', fontSize: '11px', textAlign: 'right', fontFamily: 'monospace' }}>
+                          ${listing.price.toLocaleString()}
+                        </td>
+                        <td style={{ padding: '8px', textAlign: 'center' }}>
+                          <JensenScoreBadge score={listing.jensen_score} />
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="4" style={{ padding: '24px', textAlign: 'center', color: '#888888' }}>
+                        No real listings found in database. Click 'REFRESH LATEST' to scrape.
                       </td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>
@@ -584,7 +580,7 @@ const JensenIndex = () => {
             <div style={{ color: '#888888', fontSize: '10px', lineHeight: '1.5' }}>
               Yahoo Finance (delayed)<br />
               Ticker: NVDA<br />
-              Correlation: β = 0.73
+              Correlation: β = {data.r_squared ? Math.sqrt(data.r_squared).toFixed(2) : '0.00'}
             </div>
           </div>
 

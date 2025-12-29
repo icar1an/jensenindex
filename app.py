@@ -2,6 +2,8 @@ import os
 import sqlite3
 import json
 import random
+import numpy as np
+from scipy import stats
 from datetime import datetime, timedelta
 from pathlib import Path
 from flask import Flask, jsonify, request, render_template
@@ -139,55 +141,134 @@ def get_index():
         # Table might not exist yet if init_db wasn't successful or no scrape run
         daily_history = []
     
-    # Get top listings
+    # Get top listings (Relaxed filter to ensure we show real listings even if scores are low)
     try:
-        c.execute("SELECT * FROM listings WHERE jensen_score > 5 ORDER BY jensen_score DESC LIMIT 10")
+        c.execute("SELECT * FROM listings ORDER BY jensen_score DESC, scraped_at DESC LIMIT 20")
         top_listings = [dict(row) for row in c.fetchall()]
     except sqlite3.OperationalError:
         top_listings = []
     
     conn.close()
 
-    # If no real data yet, return mock for demo
-    if not daily_history:
-        return jsonify({"status": "seeding", "message": "No data yet. Run 'python backfill.py' locally to fetch initial data."})
+    # Prepare metrics
+    def calc_trailing(data, field, days):
+        subset = data[:days]
+        vals = [d[field] for d in subset if d.get(field) is not None]
+        return sum(vals) / len(vals) if vals else 0
 
-    # Prepare Bloomberg-style metrics
-    def calc_metrics(history):
-        if not history: return {}
-        latest = history[0]
-        # Simplified metrics for demo
-        return {
-            "name": "Avg Jacket Price",
-            "trailing7": round(latest["avg_price"], 2),
-            "pop7": round(latest["nvda_pct_change"], 2), # Placeholder
-            "highlighted": True
-        }
+    def calc_pop(data, field, days):
+        if len(data) < days * 2:
+            # Fallback: if we don't have 2 full periods, compare latest to oldest available in first period
+            if len(data) < 2: return 0
+            latest = data[0][field]
+            oldest = data[-1][field]
+            return ((latest - oldest) / oldest) * 100 if oldest else 0
+        
+        curr_subset = data[:days]
+        prev_subset = data[days:days*2]
+        
+        curr_vals = [d[field] for d in curr_subset if d.get(field) is not None]
+        prev_vals = [d[field] for d in prev_subset if d.get(field) is not None]
+        
+        if not curr_vals or not prev_vals: return 0
+        
+        curr_avg = sum(curr_vals) / len(curr_vals)
+        prev_avg = sum(prev_vals) / len(prev_vals)
+        
+        return ((curr_avg - prev_avg) / prev_avg) * 100 if prev_avg else 0
+
+    def calc_correlation(data, field1, field2, days):
+        subset = data[:days]
+        v1 = [d[field1] for d in subset if d.get(field1) is not None and d.get(field2) is not None]
+        v2 = [d[field2] for d in subset if d.get(field1) is not None and d.get(field2) is not None]
+        
+        if len(v1) < 3: return 0
+        
+        res = stats.pearsonr(v1, v2)
+        return res[0] if not np.isnan(res[0]) else 0
+
+    # Calculate correlation for Jensen Correlation tab
+    prices = [d["avg_price"] for d in daily_history if d["avg_price"] is not None]
+    nvda = [d["nvda_close"] for d in daily_history if d["nvda_close"] is not None]
+    
+    r_squared = 0
+    p_value = 0
+    if len(prices) > 5 and len(nvda) > 5:
+        min_len = min(len(prices), len(nvda))
+        slope, intercept, r_value, p_val, std_err = stats.linregress(prices[:min_len], nvda[:min_len])
+        r_squared = r_value**2
+        p_value = p_val
 
     return jsonify({
         "ticker": "JHLJ",
         "name": "Jensen Huang Leather Jacket Index",
         "status": "live",
         "last_updated": daily_history[0]["date"] if daily_history else "N/A",
+        "r_squared": round(r_squared, 4),
+        "p_value": round(p_value, 4),
         "alt_data_metrics": [
             {
                 "name": "Avg Jacket Price",
-                "trailing91": round(daily_history[0]["avg_price"], 2) if daily_history else 0,
-                "trailing28": round(daily_history[0]["avg_price"], 2) if daily_history else 0,
-                "trailing7": round(daily_history[0]["avg_price"], 2) if daily_history else 0,
-                "pop91": 5.27, "pop28": 3.20, "pop7": 2.06, "highlighted": True
+                "trailing91": round(calc_trailing(daily_history, "avg_price", 91), 2),
+                "trailing28": round(calc_trailing(daily_history, "avg_price", 28), 2),
+                "trailing7": round(calc_trailing(daily_history, "avg_price", 7), 2),
+                "pop91": round(calc_pop(daily_history, "avg_price", 91), 2),
+                "pop28": round(calc_pop(daily_history, "avg_price", 28), 2),
+                "pop7": round(calc_pop(daily_history, "avg_price", 7), 2),
+                "highlighted": True
             },
             {
                 "name": "Jensen Score (Avg)",
-                "trailing91": round(daily_history[0]["avg_jensen_score"], 2) if daily_history else 0,
-                "trailing28": round(daily_history[0]["avg_jensen_score"], 2) if daily_history else 0,
-                "trailing7": round(daily_history[0]["avg_jensen_score"], 2) if daily_history else 0,
-                "pop91": 8.22, "pop28": 4.71, "pop7": 6.34
+                "trailing91": round(calc_trailing(daily_history, "avg_jensen_score", 91), 2),
+                "trailing28": round(calc_trailing(daily_history, "avg_jensen_score", 28), 2),
+                "trailing7": round(calc_trailing(daily_history, "avg_jensen_score", 7), 2),
+                "pop91": round(calc_pop(daily_history, "avg_jensen_score", 91), 2),
+                "pop28": round(calc_pop(daily_history, "avg_jensen_score", 28), 2),
+                "pop7": round(calc_pop(daily_history, "avg_jensen_score", 7), 2)
+            },
+            {
+                "name": "Daily Listings",
+                "trailing91": round(calc_trailing(daily_history, "total_listings", 91), 0),
+                "trailing28": round(calc_trailing(daily_history, "total_listings", 28), 0),
+                "trailing7": round(calc_trailing(daily_history, "total_listings", 7), 0),
+                "pop91": round(calc_pop(daily_history, "total_listings", 91), 2),
+                "pop28": round(calc_pop(daily_history, "total_listings", 28), 2),
+                "pop7": round(calc_pop(daily_history, "total_listings", 7), 2)
+            },
+            {
+                "name": "Items Sold",
+                "trailing91": round(calc_trailing(daily_history, "sold_count", 91), 0),
+                "trailing28": round(calc_trailing(daily_history, "sold_count", 28), 0),
+                "trailing7": round(calc_trailing(daily_history, "sold_count", 7), 0),
+                "pop91": round(calc_pop(daily_history, "sold_count", 91), 2),
+                "pop28": round(calc_pop(daily_history, "sold_count", 28), 2),
+                "pop7": round(calc_pop(daily_history, "sold_count", 7), 2)
+            },
+            {
+                "name": "NVDA Correlation (R)",
+                "trailing91": round(calc_correlation(daily_history, "avg_price", "nvda_close", 91), 3),
+                "trailing28": round(calc_correlation(daily_history, "avg_price", "nvda_close", 28), 3),
+                "trailing7": round(calc_correlation(daily_history, "avg_price", "nvda_close", 7), 3),
+                "pop91": 0, "pop28": 0, "pop7": 0 # PoP on correlation is less meaningful
+            },
+            {
+                "name": "Price/NVDA Ratio",
+                "trailing91": round(calc_trailing(daily_history, "avg_price", 91) / calc_trailing(daily_history, "nvda_close", 91), 2) if calc_trailing(daily_history, "nvda_close", 91) else 0,
+                "trailing28": round(calc_trailing(daily_history, "avg_price", 28) / calc_trailing(daily_history, "nvda_close", 28), 2) if calc_trailing(daily_history, "nvda_close", 28) else 0,
+                "trailing7": round(calc_trailing(daily_history, "avg_price", 7) / calc_trailing(daily_history, "nvda_close", 7), 2) if calc_trailing(daily_history, "nvda_close", 7) else 0,
+                "pop91": round(calc_pop(daily_history, "avg_price", 91) - calc_pop(daily_history, "nvda_close", 91), 2),
+                "pop28": round(calc_pop(daily_history, "avg_price", 28) - calc_pop(daily_history, "nvda_close", 28), 2),
+                "pop7": round(calc_pop(daily_history, "avg_price", 7) - calc_pop(daily_history, "nvda_close", 7), 2)
             }
         ],
         "weekly_data": [
-            {"week": d["date"], "jacket": d["nvda_pct_change"] * 0.8, "nvda": d["nvda_pct_change"], "jensen": d["avg_jensen_score"]}
-            for d in daily_history[:7]
+            {
+                "week": d["date"], 
+                "jacket": round(((d["avg_price"] - daily_history[i+1]["avg_price"]) / daily_history[i+1]["avg_price"] * 100), 2) if i < len(daily_history)-1 and daily_history[i+1]["avg_price"] else 0,
+                "nvda": d["nvda_pct_change"] if d["nvda_pct_change"] is not None else 0,
+                "jensen": d["avg_jensen_score"]
+            }
+            for i, d in enumerate(daily_history)
         ][::-1],
         "top_listings": top_listings,
         "daily_history": daily_history
