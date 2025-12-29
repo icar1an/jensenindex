@@ -17,6 +17,7 @@
     <div id="root"></div>
 
     <script type="text/babel">
+        {% raw %}
         const { useState, useEffect } = React;
 
         /**
@@ -635,6 +636,7 @@
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<JensenIndex />);
+        {% endraw %}
     </script>
 </body>
 </html>
