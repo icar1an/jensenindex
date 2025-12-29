@@ -74,10 +74,10 @@ def run_scrape():
             try:
                 res = client.find_products(sold=False, on_sale=True, query_search=query, 
                                          categories=[Outerwear.LEATHER_JACKETS], hits_per_page=20)
-                all_products.extend(res.get("hits", []))
+                all_products.extend(res)
                 res_sold = client.find_products(sold=True, on_sale=False, query_search=query, 
                                               categories=[Outerwear.LEATHER_JACKETS], hits_per_page=20)
-                all_products.extend(res_sold.get("hits", []))
+                all_products.extend(res_sold)
             except Exception as e:
                 print(f"Error searching {query}: {e}")
 

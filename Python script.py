@@ -154,7 +154,7 @@ def scrape_leather_jackets():
                 hits_per_page=40,
                 page=1,
             )
-            all_products.extend(products.get("hits", []))
+            all_products.extend(products)
         except Exception as e:
             print(f"  Error fetching on_sale: {e}")
         
@@ -168,7 +168,7 @@ def scrape_leather_jackets():
                 hits_per_page=40,
                 page=1,
             )
-            all_products.extend(sold_products.get("hits", []))
+            all_products.extend(sold_products)
         except Exception as e:
             print(f"  Error fetching sold: {e}")
     
