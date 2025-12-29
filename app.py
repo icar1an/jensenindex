@@ -48,6 +48,55 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
+def load_seed_data():
+    """Load historical data from seed.json if database is empty."""
+    seed_path = Path(__file__).parent / "data" / "seed.json"
+    if not seed_path.exists():
+        print(f"No seed file found at {seed_path}")
+        return
+    
+    conn = get_db_connection()
+    c = conn.cursor()
+    
+    # Check if we already have data
+    c.execute("SELECT COUNT(*) FROM daily_index")
+    if c.fetchone()[0] > 0:
+        print("Database already has data, skipping seed load")
+        conn.close()
+        return
+    
+    try:
+        with open(seed_path, 'r') as f:
+            seed_data = json.load(f)
+        
+        # Load daily_index
+        for row in seed_data.get('daily_index', []):
+            c.execute("""INSERT OR IGNORE INTO daily_index 
+                (date, avg_price, median_price, avg_sold_price, total_listings, 
+                 sold_count, avg_jensen_score, nvda_close, nvda_pct_change)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (row['date'], row.get('avg_price'), row.get('median_price'),
+                 row.get('avg_sold_price'), row.get('total_listings'),
+                 row.get('sold_count'), row.get('avg_jensen_score'),
+                 row.get('nvda_close'), row.get('nvda_pct_change')))
+        
+        # Load listings
+        for row in seed_data.get('listings', []):
+            c.execute("""INSERT OR IGNORE INTO listings 
+                (id, title, designer, price, sold_price, is_sold, jensen_score, scraped_at, url)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (row['id'], row.get('title'), row.get('designer'), row.get('price'),
+                 row.get('sold_price'), row.get('is_sold'), row.get('jensen_score'),
+                 row.get('scraped_at'), row.get('url')))
+        
+        conn.commit()
+        print(f"Loaded {len(seed_data.get('daily_index', []))} daily_index rows from seed")
+        print(f"Loaded {len(seed_data.get('listings', []))} listings from seed")
+    except Exception as e:
+        print(f"Error loading seed data: {e}")
+    finally:
+        conn.close()
+
 def init_db():
     conn = get_db_connection()
     c = conn.cursor()
@@ -61,6 +110,9 @@ def init_db():
         avg_jensen_score REAL, nvda_close REAL, nvda_pct_change REAL)""")
     conn.commit()
     conn.close()
+    
+    # Load seed data if database is empty
+    load_seed_data()
 
 # ============================================================================
 # STOCK DATA LOGIC
