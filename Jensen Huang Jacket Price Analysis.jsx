@@ -13,18 +13,53 @@ const JensenIndex = () => {
   const [timeRange, setTimeRange] = useState('3M');
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const tabs = ['Inflection', 'Jensen Correlation', 'Top Listings'];
   const timeRanges = ['1W', '1M', '3M', '6M', '1Y', 'Max'];
 
-  // Mock data - in production, fetch from /api/index
+  // Fetch from real backend
   useEffect(() => {
-    // Simulate API fetch
-    setTimeout(() => {
-      setData(getMockData());
-      setLoading(false);
-    }, 800);
+    const fetchData = async () => {
+      try {
+        const response = await fetch(`${process.env.REACT_APP_API_URL || ''}/api/index`);
+        if (!response.ok) throw new Error('Network response was not ok');
+        const jsonData = await response.json();
+        
+        if (jsonData.status === 'seeding') {
+          // If seeding, keep loading or show message
+          console.log('Backend is seeding data...');
+          setData(getMockData()); // Fallback to mock for now
+        } else {
+          setData(jsonData);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setData(getMockData()); // Fallback to mock on error
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetch(`${process.env.REACT_APP_API_URL || ''}/api/scrape`);
+      // Re-fetch data after scrape
+      const response = await fetch(`${process.env.REACT_APP_API_URL || ''}/api/index`);
+      const jsonData = await response.json();
+      if (jsonData.status !== 'seeding') {
+        setData(jsonData);
+      }
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const getMockData = () => ({
     ticker: "JHLJ",
@@ -169,9 +204,19 @@ const JensenIndex = () => {
         <span style={{ 
           color: '#00ff00', 
           fontSize: '12px',
-          marginRight: '16px'
+          marginRight: '16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px'
         }}>
-          ▲ 2.18%
+          <span style={{ 
+            width: '8px', 
+            height: '8px', 
+            backgroundColor: '#00ff00', 
+            borderRadius: '50%',
+            boxShadow: '0 0 5px #00ff00'
+          }}></span>
+          LIVE
         </span>
         <span style={{ 
           color: '#888888', 
@@ -180,6 +225,21 @@ const JensenIndex = () => {
         }}>
           NVDA: $142.87 ▲ 2.74%
         </span>
+        <button 
+          onClick={handleRefresh}
+          disabled={refreshing}
+          style={{
+            backgroundColor: refreshing ? '#333' : '#003366',
+            color: 'white',
+            border: 'none',
+            padding: '2px 12px',
+            fontSize: '11px',
+            cursor: refreshing ? 'not-allowed' : 'pointer',
+            marginRight: '8px',
+          }}
+        >
+          {refreshing ? 'SCRAPING...' : 'REFRESH LATEST'}
+        </button>
         <button style={{
           backgroundColor: '#ff6600',
           color: 'white',
@@ -187,7 +247,7 @@ const JensenIndex = () => {
           padding: '2px 12px',
           fontSize: '11px',
           cursor: 'pointer',
-          marginLeft: 'auto',
+          marginLeft: '0',
         }}>
           Export ▼
         </button>
@@ -237,7 +297,7 @@ const JensenIndex = () => {
         </h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ color: '#888888', fontSize: '11px' }}>
-            Data up to {data.last_updated}
+            {data.status === 'live' ? 'Real-time feed active' : 'Snapshot mode'} | Last data point: {data.last_updated}
           </span>
           <span style={{
             color: '#ff9900',

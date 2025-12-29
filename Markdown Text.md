@@ -45,21 +45,36 @@ What makes a leather jacket "Jensen-coded"? Our proprietary algorithm:
 | Description mentions "NVIDIA" or "Jensen" | +10 | The holy grail |
 | Brown/tan/suede | -2 to -3 | Distinctly NOT Jensen |
 
+## Live Deployment
+
+The app is now configured for **Live Mode**. It includes:
+1. **Automated Background Scraper**: Runs every 6 hours to update the index.
+2. **On-Demand Scrape**: A "REFRESH LATEST" button in the UI that triggers a real-time Grailed scan via the API.
+3. **Live Indicator**: A pulsing green status light in the UI to signal real-time data flow.
+
+### Setup & Deployment
+
+1. **Backend**: Deploy `app.py`. It will automatically initialize the database and start the background scheduler.
+2. **Database Persistence**: On platforms like Render, the database is stored in `/tmp` to ensure write permissions, but it is ephemeral. For a permanent live post, use a Persistent Disk or a managed SQLite/PostgreSQL instance.
+3. **Frontend**: Build the React UI. It will connect to the `/api/index` and `/api/scrape` endpoints.
+
+### Manual Backfill (Optional)
+If you want to start with 90 days of history instead of waiting for the live scraper to build history:
+```bash
+python backfill.py
+```
+This will seed the database with historical NVDA data and current Grailed listings.
+
 ## Setup
 
 ### Backend (Python)
 
 ```bash
-cd backend
-
 # Install dependencies
 pip install -r requirements.txt
 
-# Initialize database & run first scrape
-python scraper.py
-
 # Start API server
-flask run --port 5000
+python app.py
 ```
 
 ### Frontend (React)
