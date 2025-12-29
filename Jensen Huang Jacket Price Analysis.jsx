@@ -195,7 +195,7 @@ const JensenIndex = () => {
           fontSize: '11px',
           marginRight: '16px'
         }}>
-          NVDA: $142.87 ▲ 2.74%
+          NVDA: {data.nvda_display || '$142.87 ▲ 2.74%'}
         </span>
         <button 
           onClick={handleRefresh}
@@ -468,7 +468,7 @@ const JensenIndex = () => {
                   </div>
                   <div>
                     <div style={{ color: '#888888', fontSize: '10px' }}>Lead Time</div>
-                    <div style={{ color: '#ffcc00', fontSize: '24px', fontWeight: 'bold' }}>3-5d</div>
+                    <div style={{ color: '#ffcc00', fontSize: '24px', fontWeight: 'bold' }}>{data.lead_time || '3-5d'}</div>
                   </div>
                 </div>
               </div>
@@ -476,18 +476,16 @@ const JensenIndex = () => {
               <div style={{ color: '#ffffff', fontSize: '12px', lineHeight: '1.8' }}>
                 <h4 style={{ color: '#ff9900', marginBottom: '8px' }}>Key Insights:</h4>
                 <ul style={{ margin: 0, paddingLeft: '20px' }}>
-                  <li style={{ marginBottom: '8px' }}>
-                    <span style={{ color: '#00ff00' }}>Asymmetric zippers</span> correlate with 2.3% higher next-day NVDA returns
-                  </li>
-                  <li style={{ marginBottom: '8px' }}>
-                    Black leather listings spike <span style={{ color: '#ffcc00' }}>18%</span> in the week before earnings calls
-                  </li>
-                  <li style={{ marginBottom: '8px' }}>
-                    <span style={{ color: '#00ff00' }}>Schott NYC</span> jackets are the most predictive brand (r=0.74)
-                  </li>
-                  <li style={{ marginBottom: '8px' }}>
-                    Jensen Score {'>'}10 items precede 5%+ NVDA moves <span style={{ color: '#00ff00' }}>73%</span> of the time
-                  </li>
+                  {(data.insights || [
+                    "Asymmetric zippers correlate with 2.3% higher next-day NVDA returns",
+                    "Black leather listings spike 18% in the week before earnings calls",
+                    "Schott NYC jackets are the most predictive brand (r=0.74)",
+                    "Jensen Score >10 items precede 5%+ NVDA moves 73% of the time"
+                  ]).map((insight, i) => (
+                    <li key={i} style={{ marginBottom: '8px' }}>
+                      {insight}
+                    </li>
+                  ))}
                 </ul>
               </div>
               
