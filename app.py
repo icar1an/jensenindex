@@ -488,37 +488,45 @@ scheduler = BackgroundScheduler()
 scheduler.add_job(func=run_scrape, trigger="interval", hours=6)
 scheduler.start()
 
-# Run initial checks on startup
-with app.app_context():
-    try:
-        conn = get_db_connection()
-        c = conn.cursor()
-        
-        # Check if listings exist
-        c.execute("SELECT COUNT(*) FROM listings")
-        count = c.fetchone()[0]
-        
-        # Check if history exists
-        c.execute("SELECT COUNT(*) FROM daily_index")
-        history_count = c.fetchone()[0]
-        conn.close()
-        
-        import threading
-        if count == 0:
-            print(f"Database is empty. Running initial scrape...")
-            threading.Thread(target=run_scrape).start()
-        
-        # Always attempt backfill if history is short to ensure 90d actual data
-        if history_count < 90:
-            print(f"History is sparse ({history_count} rows). Running NVDA backfill...")
-            threading.Thread(target=backfill_nvda_history).start()
+# Run initial checks AFTER startup to avoid Gunicorn worker timeout
+def run_startup_tasks():
+    """Run startup tasks in background after worker is ready."""
+    import time
+    time.sleep(2)  # Small delay to ensure worker is fully started
+    
+    with app.app_context():
+        try:
+            conn = get_db_connection()
+            c = conn.cursor()
             
-    except Exception as e:
-        print(f"Error during startup check: {e}")
-        init_db()
-        import threading
-        threading.Thread(target=run_scrape).start()
-        threading.Thread(target=backfill_nvda_history).start()
+            # Check if listings exist
+            c.execute("SELECT COUNT(*) FROM listings")
+            count = c.fetchone()[0]
+            
+            # Check if history exists
+            c.execute("SELECT COUNT(*) FROM daily_index")
+            history_count = c.fetchone()[0]
+            conn.close()
+            
+            if count == 0:
+                print(f"[{datetime.now()}] Database is empty. Running initial scrape...")
+                run_scrape()
+            
+            # Always attempt backfill if history is short to ensure 90d actual data
+            if history_count < 90:
+                print(f"[{datetime.now()}] History is sparse ({history_count} rows). Running NVDA backfill...")
+                backfill_nvda_history()
+                
+        except Exception as e:
+            print(f"Error during startup tasks: {e}")
+            init_db()
+            run_scrape()
+            backfill_nvda_history()
+
+# Start background thread for startup tasks - this doesn't block the worker
+import threading
+startup_thread = threading.Thread(target=run_startup_tasks, daemon=True)
+startup_thread.start()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
