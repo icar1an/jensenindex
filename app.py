@@ -235,9 +235,11 @@ def run_scrape():
         # NVDA Data
         nvda_close, nvda_pct, _ = get_nvda_data()
         
-        # Daily Index
+        # Daily Index - calculate averages only from TODAY's scraped listings
+        # This ensures consistent day-over-day comparisons
         today = datetime.now().date().isoformat()
-        c.execute("SELECT AVG(price), AVG(sold_price), COUNT(*), SUM(is_sold), AVG(jensen_score) FROM listings")
+        c.execute("""SELECT AVG(price), AVG(sold_price), COUNT(*), SUM(is_sold), AVG(jensen_score) 
+                     FROM listings WHERE DATE(scraped_at) = DATE(?)""", (today,))
         row = c.fetchone()
         if row and row[0]:
             c.execute("INSERT OR REPLACE INTO daily_index (date, avg_price, median_price, avg_sold_price, total_listings, sold_count, avg_jensen_score, nvda_close, nvda_pct_change) VALUES (?,?,?,?,?,?,?,?,?)",

@@ -978,17 +978,6 @@
       "avg_jensen_score": 6.73,
       "nvda_close": 190.53,
       "nvda_pct_change": 1.02
-    },
-    {
-      "date": "2025-12-29",
-      "avg_price": 1229.4356955380576,
-      "median_price": 1229.4356955380576,
-      "avg_sold_price": 751.6611111111112,
-      "total_listings": 381,
-      "sold_count": 180,
-      "avg_jensen_score": 6.818897637795276,
-      "nvda_close": 187.9600067138672,
-      "nvda_pct_change": -1.3488647886922385
     }
   ],
   "listings": [
