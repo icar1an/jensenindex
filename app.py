@@ -152,6 +152,72 @@ def run_scrape():
         print(f"Scrape failed: {e}")
         return False
 
+def backfill_index():
+    """
+    Backfills the daily_index with historical NVDA data and simulated jacket prices.
+    Ensures the dashboard looks full on first launch (especially on Render).
+    """
+    print(f"[{datetime.now()}] Starting backfill...")
+    try:
+        # 1. Run a fresh scrape to get current listings and baseline price
+        run_scrape()
+        
+        conn = get_db_connection()
+        c = conn.cursor()
+        
+        # Get current baseline from the scrape we just did
+        c.execute("SELECT AVG(price), AVG(jensen_score), COUNT(*) FROM listings")
+        baseline = c.fetchone()
+        if not baseline or not baseline[0]:
+            print("Error: No baseline data found for backfill.")
+            conn.close()
+            return
+    
+        avg_price_base = baseline[0]
+        avg_score_base = baseline[1]
+        count_base = baseline[2]
+        
+        # 2. Fetch NVDA history for the last 91 days to satisfy all trailing windows
+        nvda = yf.Ticker("NVDA")
+        hist = nvda.history(period="120d") # Get extra to be safe
+        
+        # 3. Populate daily_index
+        for date, row in hist.iterrows():
+            date_str = date.date().isoformat()
+            nvda_close = float(row['Close'])
+            
+            # Calculate pct change
+            try:
+                prev_close = hist['Close'].shift(1).loc[date]
+                nvda_pct = ((nvda_close - prev_close) / prev_close) * 100 if prev_close else 0
+            except:
+                nvda_pct = 0
+                
+            # Simulating jacket price correlation (beta = 0.73 as per the joke)
+            simulated_jacket_change = (nvda_pct * 0.73) + random.uniform(-1.5, 1.5)
+            simulated_price = avg_price_base * (1 + simulated_jacket_change / 100)
+            
+            # Jensen score also fluctuates slightly
+            simulated_score = avg_score_base + (nvda_pct * 0.05) + random.uniform(-0.3, 0.3)
+            
+            c.execute("""INSERT OR REPLACE INTO daily_index 
+                         VALUES (?,?,?,?,?,?,?,?,?)""",
+                      (date_str, 
+                       round(simulated_price, 2), 
+                       round(simulated_price * 0.96, 2), # median
+                       round(simulated_price * 0.92, 2), # avg_sold
+                       count_base + random.randint(-15, 15), 
+                       max(1, int(count_base * 0.15) + random.randint(-10, 10)),
+                       round(simulated_score, 2),
+                       round(nvda_close, 2),
+                       round(nvda_pct, 2)))
+            
+        conn.commit()
+        conn.close()
+        print(f"[{datetime.now()}] Backfill completed successfully.")
+    except Exception as e:
+        print(f"Backfill failed: {e}")
+
 # ============================================================================
 # API ROUTES
 # ============================================================================
@@ -380,6 +446,12 @@ def trigger_scrape():
     success = run_scrape()
     return jsonify({"status": "success" if success else "error"})
 
+@app.route("/api/backfill")
+def trigger_backfill():
+    import threading
+    threading.Thread(target=backfill_index).start()
+    return jsonify({"status": "backfill_started"})
+
 @app.route("/api/health")
 def health():
     return jsonify({"status": "ok", "db_exists": DB_PATH.exists()})
@@ -394,18 +466,27 @@ scheduler = BackgroundScheduler()
 scheduler.add_job(func=run_scrape, trigger="interval", hours=6)
 scheduler.start()
 
-# Run an initial scrape on startup if database is empty
+# Run an initial backfill on startup if database is empty
 with app.app_context():
-    conn = get_db_connection()
-    c = conn.cursor()
-    c.execute("SELECT COUNT(*) FROM daily_index")
-    count = c.fetchone()[0]
-    conn.close()
-    if count == 0:
-        print("Empty database detected. Running initial scrape...")
-        # Run in background to avoid blocking startup
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        c.execute("SELECT COUNT(*) FROM daily_index")
+        count = c.fetchone()[0]
+        conn.close()
+        
+        # If we have less than 10 days of data, run a backfill to ensure
+        # the dashboard is fully populated with "historical" data.
+        if count < 10:
+            print(f"Database has only {count} entries. Running backfill...")
+            import threading
+            threading.Thread(target=backfill_index).start()
+    except Exception as e:
+        print(f"Error during startup check: {e}")
+        # If DB is broken, try to init and backfill
+        init_db()
         import threading
-        threading.Thread(target=run_scrape).start()
+        threading.Thread(target=backfill_index).start()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
