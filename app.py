@@ -390,13 +390,23 @@ def health():
 init_db()
 
 # Scheduler for automatic updates every 6 hours
-# (Keep it frequent enough to be 'live' but not so much we get rate limited)
 scheduler = BackgroundScheduler()
 scheduler.add_job(func=run_scrape, trigger="interval", hours=6)
 scheduler.start()
 
+# Run an initial scrape on startup if database is empty
+with app.app_context():
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute("SELECT COUNT(*) FROM daily_index")
+    count = c.fetchone()[0]
+    conn.close()
+    if count == 0:
+        print("Empty database detected. Running initial scrape...")
+        # Run in background to avoid blocking startup
+        import threading
+        threading.Thread(target=run_scrape).start()
+
 if __name__ == "__main__":
-    # For local testing, you can run a scrape once
-    # run_scrape() 
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
 

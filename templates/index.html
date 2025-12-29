@@ -33,7 +33,7 @@
           const [data, setData] = useState(null);
           const [refreshing, setRefreshing] = useState(false);
 
-          const tabs = ['Inflection', 'Jensen Correlation', 'Top Listings'];
+          const tabs = ['Inflection', 'Top Listings'];
           const timeRanges = ['1W', '1M', '3M', '6M', '1Y', 'Max'];
 
           const getFilteredWeeklyData = () => {
@@ -56,15 +56,18 @@
                 const response = await fetch('/api/index');
                 if (!response.ok) throw new Error('Network response was not ok');
                 const jsonData = await response.json();
-                
-                if (jsonData.status === 'seeding') {
-                  setData(getMockData()); 
-                } else {
-                  setData(jsonData);
-                }
+                setData(jsonData);
               } catch (error) {
                 console.error('Error fetching data:', error);
-                setData(getMockData());
+                setData({
+                  ticker: "JHLJ",
+                  name: "Jensen Huang Leather Jacket Index",
+                  status: "error",
+                  alt_data_metrics: [],
+                  weekly_data: [],
+                  top_listings: [],
+                  last_updated: "N/A"
+                });
               } finally {
                 setLoading(false);
               }
@@ -79,46 +82,13 @@
               await fetch('/api/scrape');
               const response = await fetch('/api/index');
               const jsonData = await response.json();
-              if (jsonData.status !== 'seeding') {
-                setData(jsonData);
-              }
+              setData(jsonData);
             } catch (error) {
               console.error('Error refreshing data:', error);
             } finally {
               setRefreshing(false);
             }
           };
-
-          const getMockData = () => ({
-            ticker: "JHLJ",
-            name: "Jensen Huang Leather Jacket Index",
-            last_updated: "2024-12-28",
-            alt_data_metrics: [
-              { name: 'Avg Jacket Price', trailing91: 487.32, trailing28: 502.18, trailing7: 518.45, pop91: 5.27, pop28: 3.20, pop7: 2.06, highlighted: true },
-              { name: 'Jensen Score (Avg)', trailing91: 6.82, trailing28: 7.14, trailing7: 7.92, pop91: 8.22, pop28: 4.71, pop7: 6.34 },
-              { name: 'Daily Listings', trailing91: 147, trailing28: 156, trailing7: 168, pop91: 12.11, pop28: 8.29, pop7: 5.67 },
-              { name: 'Items Sold', trailing91: 23, trailing28: 27, trailing7: 31, pop91: 14.50, pop28: 11.11, pop7: 8.89 },
-              { name: 'NVDA Correlation (β)', trailing91: 0.73, trailing28: 0.68, trailing7: 0.81, pop91: 2.34, pop28: 5.12, pop7: 8.94 },
-              { name: 'Price/NVDA Ratio', trailing91: 3.52, trailing28: 3.61, trailing7: 3.74, pop91: -1.12, pop28: 2.49, pop7: 3.60 },
-            ],
-            weekly_data: [
-              { week: '15-Nov', jacket: 3.49, nvda: 4.40, jensen: 6.2 },
-              { week: '22-Nov', jacket: -1.23, nvda: -0.85, jensen: 5.8 },
-              { week: '29-Nov', jacket: 2.87, nvda: 3.22, jensen: 7.1 },
-              { week: '06-Dec', jacket: 5.12, nvda: 6.85, jensen: 8.4 },
-              { week: '13-Dec', jacket: -0.45, nvda: -1.17, jensen: 6.9 },
-              { week: '20-Dec', jacket: 4.33, nvda: 5.21, jensen: 7.8 },
-              { week: '27-Dec', jacket: 2.18, nvda: 2.74, jensen: 7.2 },
-            ],
-            top_listings: [
-              { id: '12998877', title: 'Black Leather Tech CEO Biker (NVIDIA investor energy)', designer: 'Unknown', price: 320, jensen_score: 25 },
-              { id: '12847291', title: 'Schott NYC 626 Leather Moto Jacket Black', designer: 'Schott NYC', price: 650, jensen_score: 12 },
-              { id: '12903847', title: 'AllSaints Cargo Leather Biker Jacket', designer: 'AllSaints', price: 380, jensen_score: 10 },
-              { id: '12756392', title: 'The Kooples Asymmetric Leather Jacket', designer: 'The Kooples', price: 425, jensen_score: 9 },
-              { id: '12901234', title: 'Saint Laurent L01 Classic Motorcycle', designer: 'Saint Laurent', price: 2400, jensen_score: 8 },
-              { id: '12776543', title: 'Vintage Cafe Racer Black Leather', designer: 'Vintage', price: 245, jensen_score: 8 },
-            ],
-          });
 
           const formatValue = (val, options = {}) => {
             if (val === undefined || val === null) return '';
@@ -398,9 +368,9 @@
                             ))
                           ) : (
                             <tr>
-                              <td colSpan="7" style={{ padding: '20px', textAlign: 'center', color: '#888888' }}>
-                                Waiting for real data... Click 'REFRESH LATEST' to populate index.
-                              </td>
+                      <td colSpan="7" style={{ padding: '20px', textAlign: 'center', color: '#888888' }}>
+                        Initializing index with real-time Grailed data. Please wait...
+                      </td>
                             </tr>
                           )}
                         </tbody>
@@ -543,72 +513,16 @@
                                 );
                               })
                             ) : (
-                              <tr>
-                                <td colSpan="5" style={{ padding: '12px', textAlign: 'center', color: '#666' }}>
-                                  Historical correlation data will appear after the first scrape.
-                                </td>
-                              </tr>
+                      <tr>
+                        <td colSpan="5" style={{ padding: '12px', textAlign: 'center', color: '#666' }}>
+                          Building historical data pipeline... First data point will appear shortly.
+                        </td>
+                      </tr>
                             )}
                           </tbody>
                         </table>
                       </div>
                     </>
-                  )}
-
-                  {activeTab === 'Jensen Correlation' && (
-                    <div style={{ padding: '16px' }}>
-                      <div style={{ 
-                        backgroundColor: '#0a0a0a', 
-                        padding: '16px', 
-                        border: '1px solid #333',
-                        marginBottom: '16px'
-                      }}>
-                        <h3 style={{ color: '#ff9900', margin: '0 0 12px 0', fontSize: '14px' }}>
-                          Correlation Analysis
-                        </h3>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
-                          <div>
-                            <div style={{ color: '#888888', fontSize: '10px' }}>R-Squared</div>
-                            <div style={{ color: '#00ff00', fontSize: '24px', fontWeight: 'bold' }}>{data.r_squared || '0.00'}</div>
-                          </div>
-                          <div>
-                            <div style={{ color: '#888888', fontSize: '10px' }}>P-Value</div>
-                            <div style={{ color: '#00ff00', fontSize: '24px', fontWeight: 'bold' }}>{data.p_value || '0.000'}</div>
-                          </div>
-                          <div>
-                            <div style={{ color: '#888888', fontSize: '10px' }}>Lead Time</div>
-                            <div style={{ color: '#ffcc00', fontSize: '24px', fontWeight: 'bold' }}>{data.lead_time || '3-5d'}</div>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div style={{ color: '#ffffff', fontSize: '12px', lineHeight: '1.8' }}>
-                        <h4 style={{ color: '#ff9900', marginBottom: '8px' }}>Key Insights:</h4>
-                        <ul style={{ margin: 0, paddingLeft: '20px' }}>
-                          {(data.insights || [
-                            "Asymmetric zippers correlate with 2.3% higher next-day NVDA returns",
-                            "Black leather listings spike 18% in the week before earnings calls",
-                            "Schott NYC jackets are the most predictive brand (r=0.74)",
-                            "Jensen Score >10 items precede 5%+ NVDA moves 73% of the time"
-                          ]).map((insight, i) => (
-                            <li key={i} style={{ marginBottom: '8px' }}>
-                              {insight}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                      
-                      <div style={{ 
-                        marginTop: '24px', 
-                        padding: '12px', 
-                        backgroundColor: '#1a1a00',
-                        border: '1px solid #666600',
-                        fontSize: '11px',
-                        color: '#ffcc00'
-                      }}>
-                        ⚠ DISCLAIMER: This is not financial advice. This is fashion advice.
-                      </div>
-                    </div>
                   )}
 
                   {activeTab === 'Top Listings' && (

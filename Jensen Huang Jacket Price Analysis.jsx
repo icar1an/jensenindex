@@ -16,7 +16,7 @@ const JensenIndex = () => {
   const [data, setData] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  const tabs = ['Inflection', 'Jensen Correlation', 'Top Listings'];
+  const tabs = ['Inflection', 'Top Listings'];
   const timeRanges = ['1W', '1M', '3M', '6M', '1Y', 'Max'];
 
   const getFilteredWeeklyData = () => {
@@ -69,9 +69,7 @@ const JensenIndex = () => {
       // Re-fetch data after scrape
       const response = await fetch(`${process.env.REACT_APP_API_URL || ''}/api/index`);
       const jsonData = await response.json();
-      if (jsonData.status !== 'seeding') {
-        setData(jsonData);
-      }
+      setData(jsonData);
     } catch (error) {
       console.error('Error refreshing data:', error);
     } finally {
@@ -512,57 +510,6 @@ const JensenIndex = () => {
                 </table>
               </div>
             </>
-          )}
-
-          {activeTab === 'Jensen Correlation' && (
-            <div style={{ padding: '16px' }}>
-              <div style={{ 
-                backgroundColor: '#0a0a0a', 
-                padding: '16px', 
-                border: '1px solid #333',
-                marginBottom: '16px'
-              }}>
-                <h3 style={{ color: '#ff9900', margin: '0 0 12px 0', fontSize: '14px' }}>
-                  Correlation Analysis
-                </h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
-                  <div>
-                    <div style={{ color: '#888888', fontSize: '10px' }}>R-Squared</div>
-                    <div style={{ color: '#00ff00', fontSize: '24px', fontWeight: 'bold' }}>{data.r_squared || '0.00'}</div>
-                  </div>
-                  <div>
-                    <div style={{ color: '#888888', fontSize: '10px' }}>P-Value</div>
-                    <div style={{ color: '#00ff00', fontSize: '24px', fontWeight: 'bold' }}>{data.p_value || '0.000'}</div>
-                  </div>
-                  <div>
-                    <div style={{ color: '#888888', fontSize: '10px' }}>Lead Time</div>
-                    <div style={{ color: '#ffcc00', fontSize: '24px', fontWeight: 'bold' }}>{data.lead_time || '3-5d'}</div>
-                  </div>
-                </div>
-              </div>
-              
-              <div style={{ color: '#ffffff', fontSize: '12px', lineHeight: '1.8' }}>
-                <h4 style={{ color: '#ff9900', marginBottom: '8px' }}>Key Insights:</h4>
-                <ul style={{ margin: 0, paddingLeft: '20px' }}>
-                  {(data.insights || []).map((insight, i) => (
-                    <li key={i} style={{ marginBottom: '8px' }}>
-                      {insight}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              
-              <div style={{ 
-                marginTop: '24px', 
-                padding: '12px', 
-                backgroundColor: '#1a1a00',
-                border: '1px solid #666600',
-                fontSize: '11px',
-                color: '#ffcc00'
-              }}>
-                ⚠ DISCLAIMER: This is not financial advice. This is fashion advice.
-              </div>
-            </div>
           )}
 
           {activeTab === 'Top Listings' && (
