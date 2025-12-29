@@ -4,14 +4,14 @@ import json
 import random
 from datetime import datetime, timedelta
 from pathlib import Path
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, render_template
 from flask_cors import CORS
 import yfinance as yf
 from apscheduler.schedulers.background import BackgroundScheduler
 from grailed_api import GrailedAPIClient
 from grailed_api.enums.categories import Outerwear
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder="templates")
 CORS(app)
 
 # Use /tmp for database on Render to ensure we have write permissions, 
@@ -122,6 +122,10 @@ def run_scrape():
 # ============================================================================
 # API ROUTES
 # ============================================================================
+@app.route("/")
+def index():
+    return render_template("index.html")
+
 @app.route("/api/index")
 def get_index():
     conn = get_db_connection()
