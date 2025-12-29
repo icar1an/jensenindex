@@ -91,7 +91,7 @@
           };
 
           const formatValue = (val, options = {}) => {
-            if (val === undefined || val === null) return '';
+            if (val === undefined || val === null) return '--';
             const num = parseFloat(val);
             const formatted = options.decimals !== undefined 
               ? num.toFixed(options.decimals)
@@ -109,13 +109,16 @@
             const result = formatValue(value, { colorCode: true, decimals });
             let bgColor = 'transparent';
             
-            if (highlight === 'yellow' && parseFloat(value) > 5) bgColor = '#8B8000';
-            if (highlight === 'red') bgColor = parseFloat(value) < -5 ? '#8B0000' : 'transparent';
-            if (highlight === 'green' && parseFloat(value) > 5) bgColor = '#006400';
+            const numValue = parseFloat(value);
+            if (!isNaN(numValue)) {
+              if (highlight === 'yellow' && numValue > 5) bgColor = '#8B8000';
+              if (highlight === 'red') bgColor = numValue < -5 ? '#8B0000' : 'transparent';
+              if (highlight === 'green' && numValue > 5) bgColor = '#006400';
+            }
             
             return (
               <td style={{ 
-                color: result.color, 
+                color: result.color || '#ffffff', 
                 backgroundColor: bgColor,
                 padding: '2px 8px',
                 textAlign: 'right',
@@ -123,7 +126,7 @@
                 fontSize: '12px',
                 borderRight: '1px solid #333'
               }}>
-                {result.value}
+                {result.value || result}
               </td>
             );
           };

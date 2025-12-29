@@ -29,6 +29,7 @@ JENSEN_KEYWORDS = {
     "saint laurent": 8, "rick owens": 6, "celine": 8, "tom ford": 25, "ysl": 8, "yves saint laurent": 8,
     "hermes": 12, "prada": 7, "gucci": 7, "balenciaga": 6, "chrome hearts": 12,
     "belstaff": 5, "brunello cucinelli": 10, "loro piana": 10, "undercover": 5, "julius": 4,
+    "fendi": 7, "dior": 8, "berluti": 10, "isaia": 6, "brioni": 8, "kiton": 10,
     "brown": -2, "tan": -2, "suede": -3, "shearling": -2, "bomber": -1, "varsity": -3,
 }
 
@@ -96,16 +97,19 @@ def run_scrape():
             "celine leather jacket", "tom ford leather jacket", "ysl leather jacket", 
             "saint laurent leather jacket", "rick owens leather jacket",
             "hermes leather jacket", "chrome hearts leather jacket", "prada leather jacket",
-            "gucci leather jacket", "brunello cucinelli leather", "loro piana leather"
+            "gucci leather jacket", "brunello cucinelli leather", "loro piana leather",
+            "fendi leather jacket", "dior leather jacket", "balenciaga leather jacket",
+            "berluti leather jacket", "isaia leather jacket", "brioni leather jacket"
         ]
         
         for query in queries:
             try:
+                # Increased hits_per_page to 100 for more accurate listing counts
                 res = client.find_products(sold=False, on_sale=True, query_search=query, 
-                                         categories=[Outerwear.LEATHER_JACKETS], hits_per_page=20)
+                                         categories=[Outerwear.LEATHER_JACKETS], hits_per_page=100)
                 all_products.extend(res)
                 res_sold = client.find_products(sold=True, on_sale=False, query_search=query, 
-                                              categories=[Outerwear.LEATHER_JACKETS], hits_per_page=20)
+                                              categories=[Outerwear.LEATHER_JACKETS], hits_per_page=100)
                 all_products.extend(res_sold)
             except Exception as e:
                 print(f"Error searching {query}: {e}")
@@ -190,19 +194,19 @@ def get_index():
 
     def calc_pop(data, field, days):
         if len(data) < days * 2:
-            if len(data) < 2: return 0
+            if len(data) < 2: return None
             latest = data[0][field]
             oldest = data[-1][field]
-            return ((latest - oldest) / oldest) * 100 if oldest else 0
+            return ((latest - oldest) / oldest) * 100 if oldest else None
         
         curr_subset = data[:days]
         prev_subset = data[days:days*2]
         curr_vals = [d[field] for d in curr_subset if d.get(field) is not None]
         prev_vals = [d[field] for d in prev_subset if d.get(field) is not None]
-        if not curr_vals or not prev_vals: return 0
+        if not curr_vals or not prev_vals: return None
         curr_avg = sum(curr_vals) / len(curr_vals)
         prev_avg = sum(prev_vals) / len(prev_vals)
-        return ((curr_avg - prev_avg) / prev_avg) * 100 if prev_avg else 0
+        return ((curr_avg - prev_avg) / prev_avg) * 100 if prev_avg else None
 
     # Get latest NVDA for header
     _, _, nvda_display = get_nvda_data()
@@ -219,9 +223,9 @@ def get_index():
                 "trailing91": round(calc_trailing(daily_history, "avg_price", 91), 2),
                 "trailing28": round(calc_trailing(daily_history, "avg_price", 28), 2),
                 "trailing7": round(calc_trailing(daily_history, "avg_price", 7), 2),
-                "pop91": round(calc_pop(daily_history, "avg_price", 91), 2),
-                "pop28": round(calc_pop(daily_history, "avg_price", 28), 2),
-                "pop7": round(calc_pop(daily_history, "avg_price", 7), 2),
+                "pop91": round(calc_pop(daily_history, "avg_price", 91), 2) if calc_pop(daily_history, "avg_price", 91) is not None else None,
+                "pop28": round(calc_pop(daily_history, "avg_price", 28), 2) if calc_pop(daily_history, "avg_price", 28) is not None else None,
+                "pop7": round(calc_pop(daily_history, "avg_price", 7), 2) if calc_pop(daily_history, "avg_price", 7) is not None else None,
                 "highlighted": True
             },
             {
@@ -229,33 +233,33 @@ def get_index():
                 "trailing91": round(calc_trailing(daily_history, "avg_jensen_score", 91), 2),
                 "trailing28": round(calc_trailing(daily_history, "avg_jensen_score", 28), 2),
                 "trailing7": round(calc_trailing(daily_history, "avg_jensen_score", 7), 2),
-                "pop91": round(calc_pop(daily_history, "avg_jensen_score", 91), 2),
-                "pop28": round(calc_pop(daily_history, "avg_jensen_score", 28), 2),
-                "pop7": round(calc_pop(daily_history, "avg_jensen_score", 7), 2)
+                "pop91": round(calc_pop(daily_history, "avg_jensen_score", 91), 2) if calc_pop(daily_history, "avg_jensen_score", 91) is not None else None,
+                "pop28": round(calc_pop(daily_history, "avg_jensen_score", 28), 2) if calc_pop(daily_history, "avg_jensen_score", 28) is not None else None,
+                "pop7": round(calc_pop(daily_history, "avg_jensen_score", 7), 2) if calc_pop(daily_history, "avg_jensen_score", 7) is not None else None,
             },
             {
                 "name": "Daily Listings",
                 "trailing91": round(calc_trailing(daily_history, "total_listings", 91), 0),
                 "trailing28": round(calc_trailing(daily_history, "total_listings", 28), 0),
                 "trailing7": round(calc_trailing(daily_history, "total_listings", 7), 0),
-                "pop91": round(calc_pop(daily_history, "total_listings", 91), 2),
-                "pop28": round(calc_pop(daily_history, "total_listings", 28), 2),
-                "pop7": round(calc_pop(daily_history, "total_listings", 7), 2)
+                "pop91": round(calc_pop(daily_history, "total_listings", 91), 2) if calc_pop(daily_history, "total_listings", 91) is not None else None,
+                "pop28": round(calc_pop(daily_history, "total_listings", 28), 2) if calc_pop(daily_history, "total_listings", 28) is not None else None,
+                "pop7": round(calc_pop(daily_history, "total_listings", 7), 2) if calc_pop(daily_history, "total_listings", 7) is not None else None,
             },
             {
                 "name": "Items Sold",
                 "trailing91": round(calc_trailing(daily_history, "sold_count", 91), 0),
                 "trailing28": round(calc_trailing(daily_history, "sold_count", 28), 0),
                 "trailing7": round(calc_trailing(daily_history, "sold_count", 7), 0),
-                "pop91": round(calc_pop(daily_history, "sold_count", 91), 2),
-                "pop28": round(calc_pop(daily_history, "sold_count", 28), 2),
-                "pop7": round(calc_pop(daily_history, "sold_count", 7), 2)
+                "pop91": round(calc_pop(daily_history, "sold_count", 91), 2) if calc_pop(daily_history, "sold_count", 91) is not None else None,
+                "pop28": round(calc_pop(daily_history, "sold_count", 28), 2) if calc_pop(daily_history, "sold_count", 28) is not None else None,
+                "pop7": round(calc_pop(daily_history, "sold_count", 7), 2) if calc_pop(daily_history, "sold_count", 7) is not None else None,
             }
         ],
         "weekly_data": [
             {
                 "week": d["date"], 
-                "jacket": round(((d["avg_price"] - daily_history[i+1]["avg_price"]) / daily_history[i+1]["avg_price"] * 100), 2) if i < len(daily_history)-1 and daily_history[i+1]["avg_price"] else 0,
+                "jacket": round(((d["avg_price"] - daily_history[i+1]["avg_price"]) / daily_history[i+1]["avg_price"] * 100), 2) if i < len(daily_history)-1 and daily_history[i+1]["avg_price"] else None,
                 "nvda": d["nvda_pct_change"] if d["nvda_pct_change"] is not None else 0,
                 "jensen": d["avg_jensen_score"],
                 "volume": d["total_listings"],
