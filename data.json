@@ -1,0 +1,882 @@
+{
+  "ticker": "JHLJ",
+  "name": "Jensen Huang Leather Jacket Index",
+  "status": "historical",
+  "last_updated": "2025-12-26",
+  "nvda_display": "$190.53 \u25b2 1.02%",
+  "alt_data_metrics": [
+    {
+      "name": "Avg Jacket Price",
+      "trailing91": 1246.67,
+      "trailing28": 1246.24,
+      "trailing7": 1250.2,
+      "pop91": 0.5,
+      "pop28": -0.14,
+      "pop7": 0.3,
+      "highlighted": true
+    },
+    {
+      "name": "Jensen Score (Avg)",
+      "trailing91": 6.76,
+      "trailing28": 6.74,
+      "trailing7": 6.79,
+      "pop91": -3.72,
+      "pop28": -0.44,
+      "pop7": 1.28
+    },
+    {
+      "name": "Daily Listings",
+      "trailing91": 362.0,
+      "trailing28": 361.0,
+      "trailing7": 361.0,
+      "pop91": -0.28,
+      "pop28": -0.36,
+      "pop7": -0.12
+    },
+    {
+      "name": "Items Sold",
+      "trailing91": 72.0,
+      "trailing28": 72.0,
+      "trailing7": 68.0,
+      "pop91": -10.39,
+      "pop28": -1.38,
+      "pop7": -6.99
+    }
+  ],
+  "weekly_data": [
+    {
+      "week": "2025-08-21",
+      "jacket": null,
+      "nvda": 0,
+      "jensen": null,
+      "volume": 355,
+      "sold": 77
+    },
+    {
+      "week": "2025-08-22",
+      "jacket": null,
+      "nvda": 1.72,
+      "jensen": 6.99,
+      "volume": 363,
+      "sold": 76
+    },
+    {
+      "week": "2025-08-25",
+      "jacket": 0.17,
+      "nvda": 1.02,
+      "jensen": 6.83,
+      "volume": 364,
+      "sold": 75
+    },
+    {
+      "week": "2025-08-26",
+      "jacket": -1.03,
+      "nvda": 1.09,
+      "jensen": 6.93,
+      "volume": 369,
+      "sold": 72
+    },
+    {
+      "week": "2025-08-27",
+      "jacket": 0.09,
+      "nvda": -0.09,
+      "jensen": 6.63,
+      "volume": 363,
+      "sold": 77
+    },
+    {
+      "week": "2025-08-28",
+      "jacket": -0.42,
+      "nvda": -0.79,
+      "jensen": 6.82,
+      "volume": 353,
+      "sold": 77
+    },
+    {
+      "week": "2025-08-29",
+      "jacket": -2.71,
+      "nvda": -3.32,
+      "jensen": 6.61,
+      "volume": 370,
+      "sold": 70
+    },
+    {
+      "week": "2025-09-02",
+      "jacket": 2.76,
+      "nvda": -1.95,
+      "jensen": 6.53,
+      "volume": 367,
+      "sold": 74
+    },
+    {
+      "week": "2025-09-03",
+      "jacket": 1.35,
+      "nvda": -0.09,
+      "jensen": 6.54,
+      "volume": 360,
+      "sold": 73
+    },
+    {
+      "week": "2025-09-04",
+      "jacket": -0.14,
+      "nvda": 0.61,
+      "jensen": 6.75,
+      "volume": 365,
+      "sold": 70
+    },
+    {
+      "week": "2025-09-05",
+      "jacket": -3.03,
+      "nvda": -2.7,
+      "jensen": 6.77,
+      "volume": 371,
+      "sold": 73
+    },
+    {
+      "week": "2025-09-08",
+      "jacket": 3.7,
+      "nvda": 0.77,
+      "jensen": 6.7,
+      "volume": 362,
+      "sold": 71
+    },
+    {
+      "week": "2025-09-09",
+      "jacket": -0.41,
+      "nvda": 1.46,
+      "jensen": 6.98,
+      "volume": 354,
+      "sold": 67
+    },
+    {
+      "week": "2025-09-10",
+      "jacket": 1.4,
+      "nvda": 3.85,
+      "jensen": 7.06,
+      "volume": 367,
+      "sold": 70
+    },
+    {
+      "week": "2025-09-11",
+      "jacket": -3.26,
+      "nvda": -0.08,
+      "jensen": 6.61,
+      "volume": 358,
+      "sold": 74
+    },
+    {
+      "week": "2025-09-12",
+      "jacket": 1.9,
+      "nvda": 0.37,
+      "jensen": 6.88,
+      "volume": 359,
+      "sold": 76
+    },
+    {
+      "week": "2025-09-15",
+      "jacket": -1.38,
+      "nvda": -0.04,
+      "jensen": 6.62,
+      "volume": 354,
+      "sold": 75
+    },
+    {
+      "week": "2025-09-16",
+      "jacket": -0.11,
+      "nvda": -1.61,
+      "jensen": 6.53,
+      "volume": 371,
+      "sold": 71
+    },
+    {
+      "week": "2025-09-17",
+      "jacket": -2.07,
+      "nvda": -2.62,
+      "jensen": 6.74,
+      "volume": 369,
+      "sold": 74
+    },
+    {
+      "week": "2025-09-18",
+      "jacket": 5.61,
+      "nvda": 3.49,
+      "jensen": 6.77,
+      "volume": 371,
+      "sold": 74
+    },
+    {
+      "week": "2025-09-19",
+      "jacket": -2.12,
+      "nvda": 0.24,
+      "jensen": 6.82,
+      "volume": 367,
+      "sold": 67
+    },
+    {
+      "week": "2025-09-22",
+      "jacket": 2.61,
+      "nvda": 3.93,
+      "jensen": 6.9,
+      "volume": 365,
+      "sold": 75
+    },
+    {
+      "week": "2025-09-23",
+      "jacket": -4.87,
+      "nvda": -2.82,
+      "jensen": 6.49,
+      "volume": 352,
+      "sold": 70
+    },
+    {
+      "week": "2025-09-24",
+      "jacket": 0.68,
+      "nvda": -0.82,
+      "jensen": 6.77,
+      "volume": 353,
+      "sold": 67
+    },
+    {
+      "week": "2025-09-25",
+      "jacket": 1.13,
+      "nvda": 0.41,
+      "jensen": 6.59,
+      "volume": 353,
+      "sold": 75
+    },
+    {
+      "week": "2025-09-26",
+      "jacket": -0.29,
+      "nvda": 0.28,
+      "jensen": 6.73,
+      "volume": 358,
+      "sold": 77
+    },
+    {
+      "week": "2025-09-29",
+      "jacket": 2.72,
+      "nvda": 2.05,
+      "jensen": 6.77,
+      "volume": 355,
+      "sold": 73
+    },
+    {
+      "week": "2025-09-30",
+      "jacket": -0.48,
+      "nvda": 2.6,
+      "jensen": 6.83,
+      "volume": 351,
+      "sold": 76
+    },
+    {
+      "week": "2025-10-01",
+      "jacket": -0.65,
+      "nvda": 0.35,
+      "jensen": 6.88,
+      "volume": 361,
+      "sold": 71
+    },
+    {
+      "week": "2025-10-02",
+      "jacket": 0.05,
+      "nvda": 0.88,
+      "jensen": 6.88,
+      "volume": 365,
+      "sold": 68
+    },
+    {
+      "week": "2025-10-03",
+      "jacket": -2.16,
+      "nvda": -0.67,
+      "jensen": 6.66,
+      "volume": 359,
+      "sold": 67
+    },
+    {
+      "week": "2025-10-06",
+      "jacket": -0.8,
+      "nvda": -1.11,
+      "jensen": 6.84,
+      "volume": 364,
+      "sold": 77
+    },
+    {
+      "week": "2025-10-07",
+      "jacket": 1.29,
+      "nvda": -0.27,
+      "jensen": 6.79,
+      "volume": 370,
+      "sold": 72
+    },
+    {
+      "week": "2025-10-08",
+      "jacket": 2.56,
+      "nvda": 2.2,
+      "jensen": 6.88,
+      "volume": 356,
+      "sold": 73
+    },
+    {
+      "week": "2025-10-09",
+      "jacket": -0.13,
+      "nvda": 1.83,
+      "jensen": 6.96,
+      "volume": 365,
+      "sold": 72
+    },
+    {
+      "week": "2025-10-10",
+      "jacket": -4.77,
+      "nvda": -4.89,
+      "jensen": 6.56,
+      "volume": 370,
+      "sold": 72
+    },
+    {
+      "week": "2025-10-13",
+      "jacket": 6.01,
+      "nvda": 2.82,
+      "jensen": 6.77,
+      "volume": 355,
+      "sold": 68
+    },
+    {
+      "week": "2025-10-14",
+      "jacket": -5.42,
+      "nvda": -4.4,
+      "jensen": 6.65,
+      "volume": 369,
+      "sold": 75
+    },
+    {
+      "week": "2025-10-15",
+      "jacket": 2.81,
+      "nvda": -0.11,
+      "jensen": 6.86,
+      "volume": 369,
+      "sold": 71
+    },
+    {
+      "week": "2025-10-16",
+      "jacket": 0.5,
+      "nvda": 1.1,
+      "jensen": 6.86,
+      "volume": 354,
+      "sold": 67
+    },
+    {
+      "week": "2025-10-17",
+      "jacket": -0.44,
+      "nvda": 0.78,
+      "jensen": 6.69,
+      "volume": 371,
+      "sold": 76
+    },
+    {
+      "week": "2025-10-20",
+      "jacket": -0.15,
+      "nvda": -0.32,
+      "jensen": 6.72,
+      "volume": 364,
+      "sold": 74
+    },
+    {
+      "week": "2025-10-21",
+      "jacket": -0.56,
+      "nvda": -0.81,
+      "jensen": 6.74,
+      "volume": 360,
+      "sold": 75
+    },
+    {
+      "week": "2025-10-22",
+      "jacket": 0.55,
+      "nvda": -0.49,
+      "jensen": 6.77,
+      "volume": 362,
+      "sold": 76
+    },
+    {
+      "week": "2025-10-23",
+      "jacket": 1.52,
+      "nvda": 1.04,
+      "jensen": 6.9,
+      "volume": 356,
+      "sold": 67
+    },
+    {
+      "week": "2025-10-24",
+      "jacket": -0.69,
+      "nvda": 2.25,
+      "jensen": 6.78,
+      "volume": 362,
+      "sold": 77
+    },
+    {
+      "week": "2025-10-27",
+      "jacket": 1.63,
+      "nvda": 2.81,
+      "jensen": 6.7,
+      "volume": 356,
+      "sold": 68
+    },
+    {
+      "week": "2025-10-28",
+      "jacket": 1.67,
+      "nvda": 4.98,
+      "jensen": 7.1,
+      "volume": 366,
+      "sold": 76
+    },
+    {
+      "week": "2025-10-29",
+      "jacket": -1.93,
+      "nvda": 2.99,
+      "jensen": 6.76,
+      "volume": 355,
+      "sold": 76
+    },
+    {
+      "week": "2025-10-30",
+      "jacket": -3.21,
+      "nvda": -2.0,
+      "jensen": 6.67,
+      "volume": 356,
+      "sold": 72
+    },
+    {
+      "week": "2025-10-31",
+      "jacket": 0.59,
+      "nvda": -0.2,
+      "jensen": 6.67,
+      "volume": 368,
+      "sold": 75
+    },
+    {
+      "week": "2025-11-03",
+      "jacket": 2.05,
+      "nvda": 2.17,
+      "jensen": 6.96,
+      "volume": 360,
+      "sold": 69
+    },
+    {
+      "week": "2025-11-04",
+      "jacket": -3.24,
+      "nvda": -3.96,
+      "jensen": 6.46,
+      "volume": 368,
+      "sold": 73
+    },
+    {
+      "week": "2025-11-05",
+      "jacket": 0.33,
+      "nvda": -1.75,
+      "jensen": 6.66,
+      "volume": 354,
+      "sold": 68
+    },
+    {
+      "week": "2025-11-06",
+      "jacket": -0.42,
+      "nvda": -3.65,
+      "jensen": 6.62,
+      "volume": 371,
+      "sold": 75
+    },
+    {
+      "week": "2025-11-07",
+      "jacket": 1.27,
+      "nvda": 0.04,
+      "jensen": 6.65,
+      "volume": 358,
+      "sold": 72
+    },
+    {
+      "week": "2025-11-10",
+      "jacket": 4.17,
+      "nvda": 5.79,
+      "jensen": 7.1,
+      "volume": 352,
+      "sold": 71
+    },
+    {
+      "week": "2025-11-11",
+      "jacket": -5.18,
+      "nvda": -2.96,
+      "jensen": 6.7,
+      "volume": 371,
+      "sold": 76
+    },
+    {
+      "week": "2025-11-12",
+      "jacket": 2.23,
+      "nvda": 0.33,
+      "jensen": 6.79,
+      "volume": 368,
+      "sold": 70
+    },
+    {
+      "week": "2025-11-13",
+      "jacket": -2.82,
+      "nvda": -3.58,
+      "jensen": 6.64,
+      "volume": 370,
+      "sold": 72
+    },
+    {
+      "week": "2025-11-14",
+      "jacket": 4.08,
+      "nvda": 1.77,
+      "jensen": 6.91,
+      "volume": 366,
+      "sold": 76
+    },
+    {
+      "week": "2025-11-17",
+      "jacket": -3.66,
+      "nvda": -1.88,
+      "jensen": 6.73,
+      "volume": 370,
+      "sold": 69
+    },
+    {
+      "week": "2025-11-18",
+      "jacket": 0.2,
+      "nvda": -2.81,
+      "jensen": 6.47,
+      "volume": 352,
+      "sold": 74
+    },
+    {
+      "week": "2025-11-19",
+      "jacket": 4.29,
+      "nvda": 2.85,
+      "jensen": 7.05,
+      "volume": 371,
+      "sold": 74
+    },
+    {
+      "week": "2025-11-20",
+      "jacket": -4.45,
+      "nvda": -3.15,
+      "jensen": 6.69,
+      "volume": 365,
+      "sold": 72
+    },
+    {
+      "week": "2025-11-21",
+      "jacket": 0.76,
+      "nvda": -0.97,
+      "jensen": 6.59,
+      "volume": 351,
+      "sold": 70
+    },
+    {
+      "week": "2025-11-24",
+      "jacket": 3.62,
+      "nvda": 2.05,
+      "jensen": 6.65,
+      "volume": 366,
+      "sold": 72
+    },
+    {
+      "week": "2025-11-25",
+      "jacket": -3.0,
+      "nvda": -2.59,
+      "jensen": 6.67,
+      "volume": 369,
+      "sold": 72
+    },
+    {
+      "week": "2025-11-26",
+      "jacket": 2.81,
+      "nvda": 1.37,
+      "jensen": 6.66,
+      "volume": 370,
+      "sold": 73
+    },
+    {
+      "week": "2025-11-28",
+      "jacket": -2.05,
+      "nvda": -1.81,
+      "jensen": 6.84,
+      "volume": 356,
+      "sold": 74
+    },
+    {
+      "week": "2025-12-01",
+      "jacket": 2.43,
+      "nvda": 1.65,
+      "jensen": 6.82,
+      "volume": 353,
+      "sold": 69
+    },
+    {
+      "week": "2025-12-02",
+      "jacket": -1.6,
+      "nvda": 0.86,
+      "jensen": 6.88,
+      "volume": 353,
+      "sold": 69
+    },
+    {
+      "week": "2025-12-03",
+      "jacket": -0.12,
+      "nvda": -1.03,
+      "jensen": 6.55,
+      "volume": 361,
+      "sold": 73
+    },
+    {
+      "week": "2025-12-04",
+      "jacket": 1.96,
+      "nvda": 2.12,
+      "jensen": 6.99,
+      "volume": 363,
+      "sold": 76
+    },
+    {
+      "week": "2025-12-05",
+      "jacket": -3.31,
+      "nvda": -0.53,
+      "jensen": 6.58,
+      "volume": 362,
+      "sold": 73
+    },
+    {
+      "week": "2025-12-08",
+      "jacket": 3.18,
+      "nvda": 1.72,
+      "jensen": 6.74,
+      "volume": 362,
+      "sold": 71
+    },
+    {
+      "week": "2025-12-09",
+      "jacket": -1.49,
+      "nvda": -0.31,
+      "jensen": 6.92,
+      "volume": 358,
+      "sold": 77
+    },
+    {
+      "week": "2025-12-10",
+      "jacket": -0.83,
+      "nvda": -0.64,
+      "jensen": 6.51,
+      "volume": 363,
+      "sold": 72
+    },
+    {
+      "week": "2025-12-11",
+      "jacket": -0.48,
+      "nvda": -1.55,
+      "jensen": 6.85,
+      "volume": 367,
+      "sold": 73
+    },
+    {
+      "week": "2025-12-12",
+      "jacket": -1.18,
+      "nvda": -3.27,
+      "jensen": 6.45,
+      "volume": 354,
+      "sold": 76
+    },
+    {
+      "week": "2025-12-15",
+      "jacket": 2.89,
+      "nvda": 0.73,
+      "jensen": 6.81,
+      "volume": 363,
+      "sold": 74
+    },
+    {
+      "week": "2025-12-16",
+      "jacket": 0.39,
+      "nvda": 0.81,
+      "jensen": 6.68,
+      "volume": 361,
+      "sold": 72
+    },
+    {
+      "week": "2025-12-17",
+      "jacket": -4.8,
+      "nvda": -3.81,
+      "jensen": 6.52,
+      "volume": 363,
+      "sold": 67
+    },
+    {
+      "week": "2025-12-18",
+      "jacket": 4.41,
+      "nvda": 1.87,
+      "jensen": 6.67,
+      "volume": 363,
+      "sold": 69
+    },
+    {
+      "week": "2025-12-19",
+      "jacket": 2.6,
+      "nvda": 3.93,
+      "jensen": 6.88,
+      "volume": 352,
+      "sold": 67
+    },
+    {
+      "week": "2025-12-22",
+      "jacket": -1.82,
+      "nvda": 1.49,
+      "jensen": 6.84,
+      "volume": 369,
+      "sold": 68
+    },
+    {
+      "week": "2025-12-23",
+      "jacket": -0.03,
+      "nvda": 3.01,
+      "jensen": 7.04,
+      "volume": 357,
+      "sold": 72
+    },
+    {
+      "week": "2025-12-24",
+      "jacket": -2.0,
+      "nvda": -0.32,
+      "jensen": 6.88,
+      "volume": 367,
+      "sold": 67
+    },
+    {
+      "week": "2025-12-26",
+      "jacket": 1.99,
+      "nvda": 1.02,
+      "jensen": 6.73,
+      "volume": 354,
+      "sold": 69
+    }
+  ],
+  "top_listings": [
+    {
+      "title": "Yves Saint Laurent by Tom Ford leather moto jacket",
+      "designer": "Tom Ford",
+      "price": 501.0,
+      "jensen_score": 30
+    },
+    {
+      "title": "Yves Saint Laurent Rive Gauche Cafe Racer Jacket by Hedi",
+      "designer": "Saint Laurent",
+      "price": 1180.0,
+      "jensen_score": 26
+    },
+    {
+      "title": "\ud83d\udd25Rare Vintage Yves Saint Laurent YSL leather Jacket black",
+      "designer": "YSL",
+      "price": 550.0,
+      "jensen_score": 26
+    },
+    {
+      "title": "Vintage 90s Yves saint Laurent Ysl Sheep Leather Jacket",
+      "designer": "YSL",
+      "price": 181.0,
+      "jensen_score": 24
+    },
+    {
+      "title": "Vintage Yves Saint Laurent Leather Jacket YSL Jacket",
+      "designer": "YSL",
+      "price": 350.0,
+      "jensen_score": 24
+    },
+    {
+      "title": "Vintage Yves Saint Laurent Leather Jacket YSL Leather Jacket",
+      "designer": "YSL",
+      "price": 380.0,
+      "jensen_score": 24
+    },
+    {
+      "title": "Vintage Yves Saint Laurent Leather Jacket YSL Leather Jacket",
+      "designer": "YSL",
+      "price": 380.0,
+      "jensen_score": 24
+    },
+    {
+      "title": "Vintage Yves Saint Laurent YSL Worn Leather Jacket Italy",
+      "designer": "YSL",
+      "price": 200.0,
+      "jensen_score": 24
+    },
+    {
+      "title": "Vintage 90\u2019s Yves Saint Laurent YSL Classic Leather Jacket",
+      "designer": "YSL",
+      "price": 307.0,
+      "jensen_score": 24
+    },
+    {
+      "title": "Vintage Yves Saint Laurent Leather Jacket YSL Jacket",
+      "designer": "YSL",
+      "price": 400.0,
+      "jensen_score": 24
+    },
+    {
+      "title": "Vintage Yves Saint Laurent Leather Jacket YSL Black",
+      "designer": "YSL",
+      "price": 320.0,
+      "jensen_score": 24
+    },
+    {
+      "title": "Vintage Yves Saint Laurent Leather Jacket YSL Leather Jacket",
+      "designer": "YSL",
+      "price": 688.0,
+      "jensen_score": 24
+    },
+    {
+      "title": "Vintage 90s ysl Yves saint laurent leather jacket",
+      "designer": "YSL",
+      "price": 275.0,
+      "jensen_score": 24
+    },
+    {
+      "title": "Yves Saint Laurent YSL Leather Jacket",
+      "designer": "YSL",
+      "price": 204.0,
+      "jensen_score": 24
+    },
+    {
+      "title": "\u2764\ufe0f\u200d\ud83d\udd25 Vintage Yves Saint Laurent Leather Jacket - Black",
+      "designer": "Saint Laurent",
+      "price": 800.0,
+      "jensen_score": 24
+    },
+    {
+      "title": "Vintage Yves Saint Laurent Leather Jacket Rare",
+      "designer": "Saint Laurent",
+      "price": 400.0,
+      "jensen_score": 24
+    },
+    {
+      "title": "\u2764\ufe0f\u200d\ud83d\udd25 Vintage Yves Saint Laurent Leather Jacket - Lambskin",
+      "designer": "Saint Laurent",
+      "price": 500.0,
+      "jensen_score": 24
+    },
+    {
+      "title": "YSL Leather Bomber Jacket",
+      "designer": "YSL",
+      "price": 1092.0,
+      "jensen_score": 23
+    },
+    {
+      "title": "Vintage Yves Saint Laurent YSL leather Mens Black jacket",
+      "designer": "YSL",
+      "price": 161.0,
+      "jensen_score": 23
+    },
+    {
+      "title": "Rare Vintage Yves Saint Laurent YSL Shearling Leather Jacket",
+      "designer": "YSL",
+      "price": 851.0,
+      "jensen_score": 22
+    }
+  ]
+}

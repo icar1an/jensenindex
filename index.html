@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>JHLJ Index - Jensen Huang Leather Jacket Index</title>
+  <meta name="description" content="A Bloomberg Terminal clone tracking leather jacket resale prices on Grailed against NVDA stock performance. Alternative data analysis meets fashion.">
   <!-- React, ReactDOM, and Babel for JSX -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -25,12 +26,12 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    {% raw %}
     const { useState, useEffect } = React;
 
     /**
      * JENSEN HUANG LEATHER JACKET INDEX
      * Bloomberg Terminal Clone for Alternative Data Analysis
+     * Static historical archive — data from Aug–Dec 2025
      */
 
     const JensenIndex = () => {
@@ -39,7 +40,6 @@
       const [activeMetric, setActiveMetric] = useState('Jacket Price vs NVDA');
       const [loading, setLoading] = useState(true);
       const [data, setData] = useState(null);
-      const [refreshing, setRefreshing] = useState(false);
 
       const tabs = ['Inflection', 'Top Listings'];
       const timeRanges = ['1W', '1M', '3M', '6M', '1Y', 'Max'];
@@ -61,7 +61,7 @@
       useEffect(() => {
         const fetchData = async () => {
           try {
-            const response = await fetch('/api/index');
+            const response = await fetch('data.json');
             if (!response.ok) throw new Error('Network response was not ok');
             const jsonData = await response.json();
             setData(jsonData);
@@ -83,20 +83,6 @@
 
         fetchData();
       }, []);
-
-      const handleRefresh = async () => {
-        setRefreshing(true);
-        try {
-          await fetch('/api/scrape');
-          const response = await fetch('/api/index');
-          const jsonData = await response.json();
-          setData(jsonData);
-        } catch (error) {
-          console.error('Error refreshing data:', error);
-        } finally {
-          setRefreshing(false);
-        }
-      };
 
       const formatValue = (val, options = {}) => {
         if (val === undefined || val === null) return '--';
@@ -177,7 +163,7 @@
                 JHLJ INDEX
               </div>
               <div style={{ color: '#888888' }}>
-                Fetching leather jackets off Grailed...
+                Loading historical data...
               </div>
             </div>
           </div>
@@ -211,7 +197,7 @@
               JHLJ Index
             </span>
             <span style={{
-              color: '#00ff00',
+              color: '#888888',
               fontSize: '12px',
               marginRight: '16px',
               display: 'flex',
@@ -221,47 +207,18 @@
               <span style={{
                 width: '8px',
                 height: '8px',
-                backgroundColor: '#00ff00',
+                backgroundColor: '#888888',
                 borderRadius: '50%',
-                boxShadow: '0 0 5px #00ff00'
               }}></span>
-              LIVE
+              HISTORICAL
             </span>
             <span style={{
               color: '#888888',
               fontSize: '11px',
               marginRight: '16px'
             }}>
-              NVDA: {data.nvda_display || '$142.87 ▲ 2.74%'}
+              NVDA: {data.nvda_display || 'N/A'}
             </span>
-            <button
-              onClick={handleRefresh}
-              disabled={refreshing}
-              style={{
-                backgroundColor: refreshing ? '#333' : '#003366',
-                color: 'white',
-                border: 'none',
-                padding: '2px 12px',
-                fontSize: '11px',
-                cursor: refreshing ? 'not-allowed' : 'pointer',
-                marginRight: '8px',
-              }}
-            >
-              {refreshing ? 'SCRAPING...' : 'REFRESH LATEST'}
-            </button>
-            <button
-              onClick={() => window.location.href = '/api/export'}
-              style={{
-                backgroundColor: '#ff6600',
-                color: 'white',
-                border: 'none',
-                padding: '2px 12px',
-                fontSize: '11px',
-                cursor: 'pointer',
-                marginLeft: '0',
-              }}>
-              Export CSV ▼
-            </button>
           </div>
 
           {/* Tabs */}
@@ -308,7 +265,7 @@
             </h2>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ color: '#888888', fontSize: '11px' }}>
-                {data.status === 'live' ? 'Real-time feed active' : 'Snapshot mode'} | Last data point: {data.last_updated}
+                Historical archive (Aug–Dec 2025) | Last data point: {data.last_updated}
               </span>
               <span style={{
                 color: '#ff9900',
@@ -382,7 +339,7 @@
                       ) : (
                         <tr>
                           <td colSpan="7" style={{ padding: '20px', textAlign: 'center', color: '#888888' }}>
-                            Initializing index with real-time Grailed data. Please wait...
+                            No historical data available.
                           </td>
                         </tr>
                       )}
@@ -519,7 +476,7 @@
                         ) : (
                           <tr>
                             <td colSpan="5" style={{ padding: '12px', textAlign: 'center', color: '#666' }}>
-                              Building historical data pipeline... First data point will appear shortly.
+                              No data available for this time range.
                             </td>
                           </tr>
                         )}
@@ -569,7 +526,7 @@
                       ) : (
                         <tr>
                           <td colSpan="4" style={{ padding: '24px', textAlign: 'center', color: '#888888' }}>
-                            No real listings found in database. Click 'REFRESH LATEST' to scrape.
+                            No listings available.
                           </td>
                         </tr>
                       )}
@@ -603,7 +560,7 @@
                   NVDA Reference:
                 </div>
                 <div style={{ color: '#888888', fontSize: '10px', lineHeight: '1.5' }}>
-                  Yahoo Finance (delayed)<br />
+                  Yahoo Finance (historical)<br />
                   Ticker: NVDA
                 </div>
               </div>
@@ -628,7 +585,6 @@
 
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<JensenIndex />);
-    {% endraw %}
   </script>
 </body>
 
